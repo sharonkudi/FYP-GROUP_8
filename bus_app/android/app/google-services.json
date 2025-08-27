@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "97951007463",
+    "project_id": "basku-bn",
+    "storage_bucket": "basku-bn.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:97951007463:android:5eb30b037e895dbbd79842",
+        "android_client_info": {
+          "package_name": "com.example.bus_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6MtlfgBJ22B5zjEVs1QJ5u1yd2u6_a1s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
