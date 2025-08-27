@@ -88,7 +88,7 @@ class AvailableBusesPage extends StatelessWidget {
                       child: const Text(
                         'Available',
                         style: TextStyle(
-                          color: Colors.green,
+                          color: Color.fromARGB(255, 42, 49, 141), // here
                           fontWeight: FontWeight.w600,
                         ),
                       ),
