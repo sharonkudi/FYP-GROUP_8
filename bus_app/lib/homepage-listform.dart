@@ -26,7 +26,10 @@ class _ListFormPageState extends State<ListFormPage> {
   final List<Map<String, String>> _allStops = const [
     {'name': 'The Mall Gadong', 'distance': '100m away'},
     {'name': 'Yayasan Complex', 'distance': '1km away'},
-    {'name': 'Kianggeh', 'distance': '2.5km away'},
+    {'name': 'Kianggeh', 'distance': '500m away'},
+    {'name': 'Ong Sum Ping', 'distance': '2km away'},
+    {'name': 'PB School', 'distance': '1.5km away'},
+    {'name': 'Ministry Of Finance', 'distance': '3.5km away'},
   ];
 
   late List<Map<String, String>> _displayedStops;
