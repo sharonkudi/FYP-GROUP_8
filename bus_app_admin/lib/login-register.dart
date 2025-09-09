@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'driver-list.dart';
+import 'home-page.dart';
 
 class AdminLoginPage extends StatefulWidget {
   const AdminLoginPage({super.key});
@@ -64,13 +65,13 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
       );
 
       Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const DriverListPage()),
-    );
+  context,
+  MaterialPageRoute(builder: (_) => const DriverListPage()), // but it goes to homepage (check driver-list.dart)
+);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Login failed: ${e.toString()}"),
+          content: Text("Login failed"),
           backgroundColor: Colors.red,
         ),
       );
@@ -145,28 +146,36 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                 ),
                 // Remember me + Forgot password
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Row(
                       children: [
                         Checkbox(
                           value: rememberMe,
                           onChanged: (value) => setState(() => rememberMe = value!),
                         ),
-                        const Text("Remember Me", style: TextStyle(color: Colors.white)),
+                        const Flexible(
+                          child: Text(
+                            "Remember Me",
+                            style: TextStyle(color: Colors.white),
+                            overflow: TextOverflow.ellipsis, // in case text is too long
+                          ),
+                        ),
                       ],
                     ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const AdminForgotPasswordPage()),
-                        );
-                      },
-                      child: const Text("Forgot Password?", style: TextStyle(color: Colors.white)),
-                    ),
-                  ],
-                ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AdminForgotPasswordPage()),
+                      );
+                    },
+                    child: const Text("Forgot Password?", style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
 
                 const SizedBox(height: 10),
 
@@ -208,7 +217,6 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
   }
 } // 👈 this was missing before, closes _AdminLoginPageState class properly
 
-
 class AdminRegisterPage extends StatefulWidget {
   const AdminRegisterPage({super.key});
 
@@ -224,6 +232,24 @@ class _AdminRegisterPageState extends State<AdminRegisterPage> {
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
 
+  /// 🔑 Generate a new admin ID like ADM001, ADM002, etc.
+  Future<String> _generateAdminId() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('admins')
+        .orderBy('createdAt', descending: true)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isNotEmpty && snapshot.docs.first.data().containsKey('admin_id')) {
+      String lastId = snapshot.docs.first['admin_id'];
+      int lastNum = int.parse(lastId.replaceAll('ADM', ''));
+      int newNum = lastNum + 1;
+      return 'ADM${newNum.toString().padLeft(3, '0')}';
+    } else {
+      return 'ADM001'; // First admin
+    }
+  }
+
   Future<void> register() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -235,7 +261,10 @@ class _AdminRegisterPageState extends State<AdminRegisterPage> {
 
       User? user = userCredential.user;
       if (user != null) {
+        String adminId = await _generateAdminId();
+
         await FirebaseFirestore.instance.collection('admins').doc(user.uid).set({
+          'admin_id': adminId, // ✅ Auto-generated ID
           'name': nameController.text.trim(),
           'email': user.email,
           'password': passwordController.text.trim(),
@@ -243,7 +272,7 @@ class _AdminRegisterPageState extends State<AdminRegisterPage> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Registration successful")),
+          SnackBar(content: Text("Registration successful! Your ID is $adminId")),
         );
 
         Navigator.pushReplacement(
@@ -262,7 +291,7 @@ class _AdminRegisterPageState extends State<AdminRegisterPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Register")),
-      backgroundColor: const Color(0xFF0D1B2A),
+      backgroundColor: const Color(0xFF0D1B2A), // ✅ Your dark blue background
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Form(
@@ -270,6 +299,7 @@ class _AdminRegisterPageState extends State<AdminRegisterPage> {
           child: Column(
             children: [
               const SizedBox(height: 30),
+              // Full Name
               TextFormField(
                 controller: nameController,
                 decoration: InputDecoration(
@@ -281,6 +311,8 @@ class _AdminRegisterPageState extends State<AdminRegisterPage> {
                 validator: (value) => value == null || value.isEmpty ? "Enter your name" : null,
               ),
               const SizedBox(height: 15),
+
+              // Email
               TextFormField(
                 controller: emailController,
                 decoration: InputDecoration(
@@ -295,9 +327,9 @@ class _AdminRegisterPageState extends State<AdminRegisterPage> {
                   return null;
                 },
               ),
-              
-              // Password
               const SizedBox(height: 15),
+
+              // Password
               TextFormField(
                 controller: passwordController,
                 obscureText: _obscurePassword,
@@ -323,7 +355,10 @@ class _AdminRegisterPageState extends State<AdminRegisterPage> {
                   return null;
                 },
               ),
+
               const SizedBox(height: 30),
+
+              // Register button
               ElevatedButton(
                 onPressed: register,
                 style: ElevatedButton.styleFrom(
@@ -333,7 +368,10 @@ class _AdminRegisterPageState extends State<AdminRegisterPage> {
                 ),
                 child: const Text("Register", style: TextStyle(color: Colors.white, fontSize: 16)),
               ),
+
               const SizedBox(height: 15),
+
+              // Already have account? Login
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -359,6 +397,7 @@ class _AdminRegisterPageState extends State<AdminRegisterPage> {
     );
   }
 }
+
 
 class AdminForgotPasswordPage extends StatefulWidget {
   const AdminForgotPasswordPage({super.key});
