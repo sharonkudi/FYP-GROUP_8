@@ -1,17 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'login-register.dart';
 import 'driver-list.dart';
 import 'bus-schedule.dart';
+import 'home-page.dart'; // ✅ to reset session flag
 
 class AdminDrawer extends StatelessWidget {
   final int selectedIndex; // highlight which page is active
 
   const AdminDrawer({super.key, required this.selectedIndex});
 
-  void _logout(BuildContext context) async {
+  Future<void> _logout(BuildContext context) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      // fetch adminId
+      final snapshot = await FirebaseFirestore.instance
+          .collection('admins')
+          .doc(user.uid)
+          .get();
+
+      if (snapshot.exists) {
+        final adminId = snapshot['admin_id'];
+
+        // write "Logged out"
+        await FirebaseFirestore.instance.collection('logs').add({
+          'admin_id': adminId,
+          'action': "Logged out",
+          'timestamp': FieldValue.serverTimestamp(),
+          'localTime': DateTime.now(),
+        });
+      }
+    }
+
+    // sign out
     await FirebaseAuth.instance.signOut();
+
+    // reset session flag for next login
+    HomePageState.sessionLoginLogged = false;
+
+    // navigate to login page
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const AdminLoginPage()),
@@ -19,7 +48,8 @@ class AdminDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildDrawerItem(BuildContext context, IconData icon, String title, int index) {
+  Widget _buildDrawerItem(
+      BuildContext context, IconData icon, String title, int index) {
     return ListTile(
       leading: Icon(icon, color: Colors.white),
       title: Text(title, style: const TextStyle(color: Colors.white)),
@@ -31,7 +61,9 @@ class AdminDrawer extends StatelessWidget {
         if (index == 0) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const DriverListPage()), // Home also reuses DriverListPage
+            MaterialPageRoute(
+                builder: (context) =>
+                    const DriverListPage()), // Home also reuses DriverListPage
           );
         } else if (index == 1) {
           Navigator.pushReplacement(
@@ -78,7 +110,10 @@ class AdminDrawer extends StatelessWidget {
                   SizedBox(width: 12),
                   Text(
                     'Bus Admin',
-                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -96,8 +131,10 @@ class AdminDrawer extends StatelessWidget {
               padding: const EdgeInsets.all(16.0),
               child: ListTile(
                 leading: const Icon(Icons.logout, color: Colors.white),
-                title: const Text('Logout', style: TextStyle(color: Colors.white)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                title: const Text('Logout',
+                    style: TextStyle(color: Colors.white)),
+                shape:
+                    RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 onTap: () => _logout(context),
               ),
             ),

@@ -80,42 +80,52 @@ class _DriverListPageState extends State<DriverListPage> {
   }
 
   // ✅ Delete Driver Confirmation
-  void _deleteDriver(String docId, String name) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Confirm Deletion"),
-          content: Text("Are you sure you want to delete $name?"),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                "Cancel",
-                style: TextStyle(color: Colors.black),
-              ),
+  void _deleteDriver(String docId, String name, String adminId) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text("Confirm Deletion"),
+        content: Text("Are you sure you want to delete $name?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: Colors.black),
             ),
-            ElevatedButton(
-              onPressed: () async {
-                await FirebaseFirestore.instance
-                    .collection('drivers')
-                    .doc(docId)
-                    .delete();
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-              ),
-              child: const Text(
-                "Yes",
-                style: TextStyle(color: Colors.white),
-              ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              // Delete driver
+              await FirebaseFirestore.instance
+                  .collection('drivers')
+                  .doc(docId)
+                  .delete();
+
+              // Add log using correct adminId
+              await FirebaseFirestore.instance.collection('logs').add({
+                'admin_id': adminId,
+                'action': "Deleted driver: $name",
+                'timestamp': FieldValue.serverTimestamp(),
+                'localTime': DateTime.now(),
+              });
+
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
             ),
-          ],
-        );
-      },
-    );
-  }
+            child: const Text(
+              "Yes",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   Widget _buildDriverList() {
     return Column(
@@ -232,7 +242,7 @@ class _DriverListPageState extends State<DriverListPage> {
                           IconButton(
                             icon: const Icon(Icons.delete, color: Colors.red),
                             onPressed: () =>
-                                _deleteDriver(docId, data['name'] ?? ''),
+                                _deleteDriver(docId, data['name'] ?? '', adminId!),
                           ),
                         ],
                       ),
