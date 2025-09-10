@@ -432,10 +432,15 @@ class _AddDriverPageState extends State<AddDriverPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Add Driver"),
-        backgroundColor: const Color(0xFF103A74),
+        title: const Text(
+          "Add Driver",
+          style: TextStyle(color: Colors.white), // Title text color white
+        ),
+        backgroundColor: const Color(0xFF103A74), // Keep original color
+        iconTheme: const IconThemeData(
+          color: Colors.white, // Back button color white
+        ),
       ),
-      backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -554,10 +559,15 @@ class _EditDriverPageState extends State<EditDriverPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Edit Driver"),
-        backgroundColor: const Color(0xFF103A74),
+        title: const Text(
+          "Edit Driver",
+          style: TextStyle(color: Colors.white), // Title text color white
+        ),
+        backgroundColor: const Color(0xFF103A74), // Keep original color
+        iconTheme: const IconThemeData(
+          color: Colors.white, // Back button color white
+        ),
       ),
-      backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
