@@ -117,7 +117,7 @@ class AvailableBusesPage extends StatelessWidget {
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
-                                bus['time'],
+                                bus['timew'],
                                 style: TextStyle(
                                     fontSize: 14, color: Colors.grey[700]),
                                 overflow: TextOverflow.ellipsis,
