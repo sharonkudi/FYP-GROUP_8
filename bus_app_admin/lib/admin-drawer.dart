@@ -49,7 +49,11 @@ class AdminDrawer extends StatelessWidget {
   }
 
   Widget _buildDrawerItem(
-      BuildContext context, IconData icon, String title, int index) {
+    BuildContext context,
+    IconData icon,
+    String title,
+    int index,
+  ) {
     return ListTile(
       leading: Icon(icon, color: Colors.white),
       title: Text(title, style: const TextStyle(color: Colors.white)),
@@ -62,8 +66,8 @@ class AdminDrawer extends StatelessWidget {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-                builder: (context) =>
-                    const DriverListPage()), // Home also reuses DriverListPage
+              builder: (context) => const DriverListPage(),
+            ), // Home also reuses DriverListPage
           );
         } else if (index == 1) {
           Navigator.pushReplacement(
@@ -73,7 +77,9 @@ class AdminDrawer extends StatelessWidget {
         } else if (index == 2) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const BusSchedulePage()),
+            MaterialPageRoute(
+              builder: (context) => const AdminBusSchedulePage(),
+            ),
           );
         }
       },
@@ -111,9 +117,10 @@ class AdminDrawer extends StatelessWidget {
                   Text(
                     'Bus Admin',
                     style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold),
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -131,10 +138,13 @@ class AdminDrawer extends StatelessWidget {
               padding: const EdgeInsets.all(16.0),
               child: ListTile(
                 leading: const Icon(Icons.logout, color: Colors.white),
-                title: const Text('Logout',
-                    style: TextStyle(color: Colors.white)),
-                shape:
-                    RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                title: const Text(
+                  'Logout',
+                  style: TextStyle(color: Colors.white),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 onTap: () => _logout(context),
               ),
             ),

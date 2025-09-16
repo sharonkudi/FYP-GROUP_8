@@ -19,11 +19,7 @@ class _DriverListPageState extends State<DriverListPage> {
   String _searchQuery = "";
   String? adminId; // 🔹 store adminId
 
-  final List<String> _titles = [
-    'Home',
-    'Driver List',
-    'Bus Schedule',
-  ];
+  final List<String> _titles = ['Home', 'Driver List', 'Bus Schedule'];
 
   @override
   void initState() {
@@ -61,9 +57,7 @@ class _DriverListPageState extends State<DriverListPage> {
     if (adminId == null) return;
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => AddDriverPage(adminId: adminId!),
-      ),
+      MaterialPageRoute(builder: (_) => AddDriverPage(adminId: adminId!)),
     );
   }
 
@@ -81,51 +75,46 @@ class _DriverListPageState extends State<DriverListPage> {
 
   // ✅ Delete Driver Confirmation
   void _deleteDriver(String docId, String name, String adminId) {
-  showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: const Text("Confirm Deletion"),
-        content: Text("Are you sure you want to delete $name?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              "Cancel",
-              style: TextStyle(color: Colors.black),
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Confirm Deletion"),
+          content: Text("Are you sure you want to delete $name?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                "Cancel",
+                style: TextStyle(color: Colors.black),
+              ),
             ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              // Delete driver
-              await FirebaseFirestore.instance
-                  .collection('drivers')
-                  .doc(docId)
-                  .delete();
+            ElevatedButton(
+              onPressed: () async {
+                // Delete driver
+                await FirebaseFirestore.instance
+                    .collection('drivers')
+                    .doc(docId)
+                    .delete();
 
-              // Add log using correct adminId
-              await FirebaseFirestore.instance.collection('logs').add({
-                'admin_id': adminId,
-                'action': "Deleted driver: $name",
-                'timestamp': FieldValue.serverTimestamp(),
-                'localTime': DateTime.now(),
-              });
+                // Add log using correct adminId
+                await FirebaseFirestore.instance.collection('logs').add({
+                  'admin_id': adminId,
+                  'action': "Deleted driver: $name",
+                  'timestamp': FieldValue.serverTimestamp(),
+                  'localTime': DateTime.now(),
+                });
 
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text("Yes", style: TextStyle(color: Colors.white)),
             ),
-            child: const Text(
-              "Yes",
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      );
-    },
-  );
-}
+          ],
+        );
+      },
+    );
+  }
 
   Widget _buildDriverList() {
     return Column(
@@ -159,8 +148,9 @@ class _DriverListPageState extends State<DriverListPage> {
                         icon: const Icon(Icons.search, color: Colors.blue),
                         onPressed: () {
                           setState(() {
-                            _searchQuery =
-                                _searchController.text.trim().toLowerCase();
+                            _searchQuery = _searchController.text
+                                .trim()
+                                .toLowerCase();
                           });
                         },
                       ),
@@ -191,8 +181,6 @@ class _DriverListPageState extends State<DriverListPage> {
           child: StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('drivers')
-                .where('ownerId',
-                    isEqualTo: FirebaseAuth.instance.currentUser?.uid)
                 .snapshots(),
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
@@ -206,8 +194,10 @@ class _DriverListPageState extends State<DriverListPage> {
 
               if (docs.isEmpty) {
                 return const Center(
-                  child: Text("No drivers found",
-                      style: TextStyle(color: Colors.white)),
+                  child: Text(
+                    "No drivers found",
+                    style: TextStyle(color: Colors.white),
+                  ),
                 );
               }
 
@@ -218,12 +208,16 @@ class _DriverListPageState extends State<DriverListPage> {
                   final docId = docs[index].id;
 
                   return Card(
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     color: index % 2 == 0 ? Colors.white : Colors.grey[200],
                     child: ListTile(
-                      title: Text(data['name'] ?? '',
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                      title: Text(
+                        data['name'] ?? '',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -241,8 +235,11 @@ class _DriverListPageState extends State<DriverListPage> {
                           ),
                           IconButton(
                             icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () =>
-                                _deleteDriver(docId, data['name'] ?? '', adminId!),
+                            onPressed: () => _deleteDriver(
+                              docId,
+                              data['name'] ?? '',
+                              adminId!,
+                            ),
                           ),
                         ],
                       ),
@@ -262,7 +259,7 @@ class _DriverListPageState extends State<DriverListPage> {
     final List<Widget> _pages = [
       const HomePage(),
       _buildDriverList(),
-      const BusSchedulePage(),
+      const AdminBusSchedulePage(),
     ];
 
     return Scaffold(
@@ -284,7 +281,9 @@ class _DriverListPageState extends State<DriverListPage> {
     return Drawer(
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
-            topRight: Radius.circular(24), bottomRight: Radius.circular(24)),
+          topRight: Radius.circular(24),
+          bottomRight: Radius.circular(24),
+        ),
       ),
       child: Container(
         color: const Color(0xFF1A2332),
@@ -308,9 +307,10 @@ class _DriverListPageState extends State<DriverListPage> {
                   Text(
                     'Bus Admin',
                     style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold),
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -328,10 +328,13 @@ class _DriverListPageState extends State<DriverListPage> {
               padding: const EdgeInsets.all(16.0),
               child: ListTile(
                 leading: const Icon(Icons.logout, color: Colors.white),
-                title:
-                    const Text('Logout', style: TextStyle(color: Colors.white)),
+                title: const Text(
+                  'Logout',
+                  style: TextStyle(color: Colors.white),
+                ),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 onTap: () => _logout(context),
               ),
             ),
@@ -395,7 +398,8 @@ class _AddDriverPageState extends State<AddDriverPage> {
     if (nameController.text.trim().isEmpty ||
         idController.text.trim().isEmpty ||
         ageController.text.trim().isEmpty ||
-        contactController.text.trim().isEmpty) return;
+        contactController.text.trim().isEmpty)
+      return;
 
     await FirebaseFirestore.instance.collection('drivers').add({
       'name': nameController.text.trim(),
@@ -411,8 +415,11 @@ class _AddDriverPageState extends State<AddDriverPage> {
     Navigator.pop(context);
   }
 
-  Widget _buildTextField(String label, TextEditingController controller,
-      {TextInputType? keyboardType}) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    TextInputType? keyboardType,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: TextField(
@@ -447,8 +454,11 @@ class _AddDriverPageState extends State<AddDriverPage> {
           children: [
             _buildTextField("Name", nameController),
             _buildTextField("ID Number", idController),
-            _buildTextField("Age", ageController,
-                keyboardType: TextInputType.number),
+            _buildTextField(
+              "Age",
+              ageController,
+              keyboardType: TextInputType.number,
+            ),
             _buildTextField("Contact Number", contactController),
             const SizedBox(height: 20),
             ElevatedButton(
@@ -499,10 +509,12 @@ class _EditDriverPageState extends State<EditDriverPage> {
     super.initState();
     nameController = TextEditingController(text: widget.data['name'] ?? '');
     idController = TextEditingController(text: widget.data['idNumber'] ?? '');
-    ageController =
-        TextEditingController(text: widget.data['age']?.toString() ?? '');
-    contactController =
-        TextEditingController(text: widget.data['contactNumber'] ?? '');
+    ageController = TextEditingController(
+      text: widget.data['age']?.toString() ?? '',
+    );
+    contactController = TextEditingController(
+      text: widget.data['contactNumber'] ?? '',
+    );
   }
 
   /// Add log to Firestore and HomePage cache
@@ -525,21 +537,24 @@ class _EditDriverPageState extends State<EditDriverPage> {
         .collection('drivers')
         .doc(widget.docId)
         .update({
-      'name': nameController.text.trim(),
-      'idNumber': idController.text.trim(),
-      'age': int.tryParse(ageController.text.trim()) ?? 0,
-      'contactNumber': contactController.text.trim(),
-      'ownerId': user.uid,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+          'name': nameController.text.trim(),
+          'idNumber': idController.text.trim(),
+          'age': int.tryParse(ageController.text.trim()) ?? 0,
+          'contactNumber': contactController.text.trim(),
+          'ownerId': user.uid,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
 
     await _addLog("Updated driver: ${nameController.text.trim()}");
 
     Navigator.pop(context);
   }
 
-  Widget _buildTextField(String label, TextEditingController controller,
-      {TextInputType? keyboardType}) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    TextInputType? keyboardType,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: TextField(
@@ -574,8 +589,11 @@ class _EditDriverPageState extends State<EditDriverPage> {
           children: [
             _buildTextField("Name", nameController),
             _buildTextField("ID Number", idController),
-            _buildTextField("Age", ageController,
-                keyboardType: TextInputType.number),
+            _buildTextField(
+              "Age",
+              ageController,
+              keyboardType: TextInputType.number,
+            ),
             _buildTextField("Contact Number", contactController),
             const SizedBox(height: 20),
             ElevatedButton(
