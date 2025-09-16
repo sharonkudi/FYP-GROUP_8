@@ -1,5 +1,7 @@
+import 'homepage-availablebuses.dart';
+import 'package:bus_app/l10n/app_localizations.dart' show AppLocalizations;
 import 'package:flutter/material.dart';
-import 'homepage-availablebuses.dart'; // Make sure this import is at the top
+import 'package:bus_app/no_internet_page.dart';
 
 class ListFormPage extends StatefulWidget {
   const ListFormPage({super.key});
@@ -12,7 +14,7 @@ class _ListFormPageState extends State<ListFormPage> {
   final fromController = TextEditingController();
   final toController = TextEditingController();
 
-  // Your dropdown source list (you can add more names here)
+  // Your dropdown source list
   final List<String> locations = [
     'The Mall Gadong',
     'Ong Sum Ping',
@@ -29,7 +31,7 @@ class _ListFormPageState extends State<ListFormPage> {
     {'name': 'Kianggeh', 'distance': '500m away'},
     {'name': 'Ong Sum Ping', 'distance': '2km away'},
     {'name': 'PB School', 'distance': '1.5km away'},
-    {'name': 'Ministry Of Finance', 'distance': '3.5km away'},
+    {'name': 'Ministry of Finance', 'distance': '3.5km away'},
   ];
 
   late List<Map<String, String>> _displayedStops;
@@ -45,7 +47,8 @@ class _ListFormPageState extends State<ListFormPage> {
 
   bool _matchesQuery(String name, String query) {
     final lowerName = name.toLowerCase();
-    final tokens = query.toLowerCase().split(RegExp(r'[\s,]+')).where((t) => t.isNotEmpty);
+    final tokens =
+        query.toLowerCase().split(RegExp(r'[\s,]+')).where((t) => t.isNotEmpty);
     for (final t in tokens) {
       if (lowerName.contains(t)) return true;
     }
@@ -53,26 +56,25 @@ class _ListFormPageState extends State<ListFormPage> {
   }
 
   void _applyFilter() {
-  if ((selectedFrom == null || selectedFrom!.isEmpty) &&
-      (selectedTo == null || selectedTo!.isEmpty)) {
+    if ((selectedFrom == null || selectedFrom!.isEmpty) &&
+        (selectedTo == null || selectedTo!.isEmpty)) {
+      setState(() {
+        _displayedStops = List<Map<String, String>>.from(_allStops);
+      });
+      return;
+    }
+
     setState(() {
-      _displayedStops = List<Map<String, String>>.from(_allStops);
+      _displayedStops = _allStops.where((stop) {
+        final name = stop['name'] ?? '';
+        final fromOk =
+            (selectedFrom != null && _matchesQuery(name, selectedFrom!));
+        final toOk = (selectedTo != null && _matchesQuery(name, selectedTo!));
+
+        return fromOk || toOk;
+      }).toList();
     });
-    return;
   }
-
-  setState(() {
-    _displayedStops = _allStops.where((stop) {
-      final name = stop['name'] ?? '';
-      final fromOk = (selectedFrom != null &&
-          _matchesQuery(name, selectedFrom!));
-      final toOk = (selectedTo != null &&
-          _matchesQuery(name, selectedTo!));
-
-      return fromOk || toOk;
-    }).toList();
-  });
-}
 
   @override
   Widget build(BuildContext context) {
@@ -144,7 +146,8 @@ class _ListFormPageState extends State<ListFormPage> {
           ),
           // Title row with "Bus Stops near me" and "View All"
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -158,15 +161,18 @@ class _ListFormPageState extends State<ListFormPage> {
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 28, 105, 168), // button color
+                    backgroundColor:
+                        const Color.fromARGB(255, 28, 105, 168), // button color
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8), // corner radius
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   ),
                   onPressed: () {
                     setState(() {
-                      _displayedStops = List<Map<String, String>>.from(_allStops);
+                      _displayedStops =
+                          List<Map<String, String>>.from(_allStops);
                       selectedFrom = null;
                       selectedTo = null;
                     });
@@ -188,20 +194,16 @@ class _ListFormPageState extends State<ListFormPage> {
                 final name = stop['name']!;
                 final distance = stop['distance']!;
 
-                // Preserve your original behavior: only "The Mall Gadong" had an active View button
-                final VoidCallback? onView =
-                    (name == 'The Mall Gadong')
-                        ? () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                // kept the same hard-coded parameter from your original code
-                                builder: (context) =>
-                                    AvailableBusesPage(busStopName: 'Ong Sum Ping'),
-                              ),
-                            );
-                          }
-                        : null;
+                // Every stop now has an active View button
+                final VoidCallback onView = () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          AvailableBusesPage(busStopName: name),
+                    ),
+                  );
+                };
 
                 return BusStopCard(
                   name: name,
@@ -234,13 +236,11 @@ class BusStopCard extends StatelessWidget {
     return Card(
       color: Colors.white,
       child: ListTile(
-        leading:
-            const Icon(Icons.directions_bus, color: Color(0xFF103A74)),
+        leading: const Icon(Icons.directions_bus, color: Color(0xFF103A74)),
         title: Text(name, style: const TextStyle(color: Colors.black)),
-        subtitle:
-            Text(distance, style: const TextStyle(color: Colors.black54)),
+        subtitle: Text(distance, style: const TextStyle(color: Colors.black54)),
         trailing: ElevatedButton(
-          onPressed: onView, // stays disabled when null, same as before
+          onPressed: onView,
           child: const Text('View'),
         ),
       ),

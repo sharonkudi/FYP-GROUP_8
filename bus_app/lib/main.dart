@@ -1,29 +1,140 @@
+import 'package:bus_app/OfflineMapPage.dart' hide NoInternetPage;
 import 'package:bus_app/home.dart';
+import 'package:bus_app/l10n/app_localizations.dart' show AppLocalizations;
+import 'package:bus_app/no_internet_page.dart';
+import 'package:bus_app/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'homepage-listform.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+
+// ✅ Settings + Provider
+import 'package:provider/provider.dart';
+import 'settings_provider.dart';
+
+// ✅ Localization
+import 'package:flutter_localizations/flutter_localizations.dart';
+
+// ✅ Added
+import 'splash_screen.dart'; // 👈 NEW
+
+// ✅ Connectivity
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'dart:async';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => SettingsProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  bool _hasInternet = true;
+  bool _splashDone = false;
+  StreamSubscription? _connectivitySubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkInitialConnection();
+
+    _connectivitySubscription =
+        Connectivity().onConnectivityChanged.listen((status) {
+      setState(() {
+        _hasInternet = status != ConnectivityResult.none;
+      });
+    });
+  }
+
+  Future<void> _checkInitialConnection() async {
+    final status = await Connectivity().checkConnectivity();
+    setState(() {
+      _hasInternet = status != ConnectivityResult.none;
+    });
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Bus App',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: const HomePage(), // Use HomePage as the entry point
+    return Consumer<SettingsProvider>(
+      builder: (context, settings, child) {
+        return MaterialApp(
+          title: 'Bus App',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            brightness:
+                settings.isDarkMode ? Brightness.dark : Brightness.light,
+            textTheme: Theme.of(context).textTheme.apply(
+                  fontSizeFactor: settings.fontSize / 14,
+                  bodyColor: settings.isDarkMode ? Colors.white : Colors.black,
+                  displayColor:
+                      settings.isDarkMode ? Colors.white : Colors.black,
+                ),
+            iconTheme: IconThemeData(
+              size: settings.iconSize,
+              color: settings.isDarkMode ? Colors.white : Colors.black,
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor:
+                    settings.isDarkMode ? Colors.blueGrey : Colors.blue,
+              ),
+            ),
+            primarySwatch: Colors.blue,
+          ),
+          locale: settings.locale,
+          supportedLocales: const [
+            Locale('en'),
+            Locale('ms'),
+          ],
+          localizationsDelegates: const [
+            AppLocalizations.delegate, // ✅ Added
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          // 👇 Show HomePage if online, NoInternetPage if offline
+          home: !_splashDone
+              ? SplashScreen(
+                  duration: const Duration(seconds: 2),
+                  onFinish: (hasInternet) {
+                    setState(() {
+                      _splashDone = true;
+                      _hasInternet = hasInternet;
+                    });
+                  },
+                )
+              : (_hasInternet
+                  ? const HomePage()
+                  : NoInternetPage(
+                      onRetry: () async {
+                        await _checkInitialConnection(); // re-check from _MyAppState
+                        setState(() {});
+                      },
+                      onOfflineView: () {},
+                    )),
+        );
+      },
     );
   }
 }
@@ -35,7 +146,8 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
+class _HomePageState extends State<HomePage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -51,8 +163,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   void _goToListForm() {
-    Navigator.pop(context); // Close the drawer
-    _tabController.index = 0; // Switch to List Form tab
+    Navigator.pop(context);
+    _tabController.index = 0;
   }
 
   @override
@@ -66,7 +178,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           ),
         ),
         child: Container(
-          color: const Color(0xFF1A2332), // Dark sidebar background
+          color: const Color(0xFF1A2332),
           child: Column(
             children: [
               // Logo and Menu Title
@@ -75,13 +187,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 child: Row(
                   children: [
                     const SizedBox(width: 16),
-                    // Placeholder for logo
                     CircleAvatar(
-                      backgroundColor: Color(0xFF103A74),
-                      child: Icon(Icons.directions_bus, color: Colors.white),
+                      backgroundColor: const Color(0xFF103A74),
+                      child:
+                          const Icon(Icons.directions_bus, color: Colors.white),
                     ),
                     const SizedBox(width: 12),
-                    Text(
+                    const Text(
                       'BasKu',
                       style: TextStyle(
                         color: Colors.white,
@@ -97,25 +209,34 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 child: ListView(
                   children: [
                     ListTile(
-                      leading: Icon(Icons.home, color: Colors.white),
-                      title: Text('Home', style: TextStyle(color: Colors.white)),
+                      leading: const Icon(Icons.home, color: Colors.white),
+                      title: const Text('Home',
+                          style: TextStyle(color: Colors.white)),
                       onTap: _goToListForm,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       selected: _tabController.index == 0,
                       selectedTileColor: Colors.blueAccent,
                     ),
                     ListTile(
-                      leading: Icon(Icons.settings, color: Colors.white),
-                      title: Text('Settings', style: TextStyle(color: Colors.white)),
+                      leading: const Icon(Icons.settings, color: Colors.white),
+                      title: const Text('Settings',
+                          style: TextStyle(color: Colors.white)),
                       onTap: () {
                         Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const SettingsPage()),
+                        );
                       },
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                   ],
                 ),
               ),
-              // Profile section at the bottom
+              // TODO: Profile Section at bottom if needed
             ],
           ),
         ),
@@ -137,7 +258,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           Home(),
         ],
       ),
-      backgroundColor: Color(0xFF103A74),
+      backgroundColor: const Color(0xFF103A74),
     );
   }
 }

@@ -46,6 +46,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '97951007463',
     projectId: 'basku-bn',
     authDomain: 'basku-bn.firebaseapp.com',
+    databaseURL: 'https://basku-bn-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'basku-bn.firebasestorage.app',
     measurementId: 'G-7MCDXRGK38',
   );
@@ -55,6 +56,7 @@ class DefaultFirebaseOptions {
     appId: '1:97951007463:android:5eb30b037e895dbbd79842',
     messagingSenderId: '97951007463',
     projectId: 'basku-bn',
+    databaseURL: 'https://basku-bn-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'basku-bn.firebasestorage.app',
   );
 
@@ -63,6 +65,7 @@ class DefaultFirebaseOptions {
     appId: '1:97951007463:ios:65418ce4350059d3d79842',
     messagingSenderId: '97951007463',
     projectId: 'basku-bn',
+    databaseURL: 'https://basku-bn-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'basku-bn.firebasestorage.app',
     iosBundleId: 'com.example.busApp',
   );
@@ -72,6 +75,7 @@ class DefaultFirebaseOptions {
     appId: '1:97951007463:ios:65418ce4350059d3d79842',
     messagingSenderId: '97951007463',
     projectId: 'basku-bn',
+    databaseURL: 'https://basku-bn-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'basku-bn.firebasestorage.app',
     iosBundleId: 'com.example.busApp',
   );
@@ -82,6 +86,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '97951007463',
     projectId: 'basku-bn',
     authDomain: 'basku-bn.firebaseapp.com',
+    databaseURL: 'https://basku-bn-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'basku-bn.firebasestorage.app',
     measurementId: 'G-VNN7XMWG5P',
   );

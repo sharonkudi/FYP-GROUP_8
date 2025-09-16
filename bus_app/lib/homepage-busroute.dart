@@ -1,6 +1,8 @@
+import 'package:bus_app/l10n/app_localizations.dart' show AppLocalizations;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 class BusRoutePage extends StatefulWidget {
   final String busId; // e.g. "bus123"
@@ -17,7 +19,8 @@ class BusRoutePage extends StatefulWidget {
 }
 
 class _BusRoutePageState extends State<BusRoutePage> {
-  double _calculateDistance(double lat1, double lng1, double lat2, double lng2) {
+  double _calculateDistance(
+      double lat1, double lng1, double lat2, double lng2) {
     return Geolocator.distanceBetween(lat1, lng1, lat2, lng2); // meters
   }
 
@@ -67,8 +70,8 @@ class _BusRoutePageState extends State<BusRoutePage> {
                 String etaText = stop.eta;
 
                 if (busLat != null && busLng != null) {
-                  double dist = _calculateDistance(
-                      busLat, busLng, stop.lat, stop.lng);
+                  double dist =
+                      _calculateDistance(busLat, busLng, stop.lat, stop.lng);
                   int etaMinutes = _calculateETA(dist, speedKmh: busSpeed);
                   etaText = "$etaMinutes min";
                 }

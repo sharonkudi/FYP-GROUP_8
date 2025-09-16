@@ -125,7 +125,6 @@ class _HomePageState extends State<Home> {
                   ),
                 ],
               ),
-
               if (_index == 1) ...[
                 const SizedBox(height: 10),
                 _DockSearchBar(
@@ -141,7 +140,6 @@ class _HomePageState extends State<Home> {
                     setState(() => _panel = _PanelMode.list);
                   },
                 ),
-
                 if (_panel != _PanelMode.none) ...[
                   const SizedBox(height: 10),
                   if (_panel == _PanelMode.list)
@@ -314,8 +312,7 @@ class _BusListPanel extends StatelessWidget {
                               style:
                                   const TextStyle(fontWeight: FontWeight.w600)),
                           const SizedBox(height: 4),
-                          Text(
-                              "${buses[i]['depart']} - ${buses[i]['arrive']}",
+                          Text("${buses[i]['depart']} - ${buses[i]['arrive']}",
                               style: const TextStyle(fontSize: 12)),
                           Text(buses[i]['route']!,
                               style: const TextStyle(
@@ -390,24 +387,24 @@ class _BusDetailPanel extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-  child: ElevatedButton(
-    onPressed: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => BusRoutePage(
-            busId: bus['no'] ?? '', // Pass bus number or ID
-            stops: [
-              // Pass your stops data here if needed
-            ],
-          ),
-        ),
-      );
-    },
-    style: ElevatedButton.styleFrom(
-      backgroundColor: Colors.green,
-    ),
-    child: const Text("View Bus"),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => BusRoutePage(
+                          busId: bus['no'] ?? '', // Pass bus number or ID
+                          stops: [
+                            // Pass your stops data here if needed
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                  ),
+                  child: const Text("View Bus"),
                 ),
               ),
             ],

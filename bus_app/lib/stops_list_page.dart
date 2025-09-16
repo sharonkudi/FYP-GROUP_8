@@ -1,4 +1,3 @@
-import 'package:bus_app/homepage-availablebuses.dart';
 import 'package:flutter/material.dart';
 
 class StopsListPage extends StatelessWidget {
@@ -29,20 +28,7 @@ class StopsListPage extends StatelessWidget {
             subtitle: Text('Schedule: ${s['schedule']}'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              // Navigate only if the stop is "The Mall Gadong"
-              if (s['name'] == 'The Mall Gadong') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AvailableBusesPage(busStopName: s['name']!),
-                  ),
-                );
-              } else {
-                // Optional: handle other stops if needed
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('No buses available for ${s['name']}')),
-                );
-              }
+              // TODO: show details or navigate
             },
           ),
         );
