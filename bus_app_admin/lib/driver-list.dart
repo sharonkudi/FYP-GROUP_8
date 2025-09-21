@@ -6,6 +6,9 @@ import 'login-register.dart'; // For AdminLoginPage
 import 'admin-drawer.dart';
 import 'home-page.dart';
 
+// 🔹 Import log service
+import 'logs_service.dart';
+
 class DriverListPage extends StatefulWidget {
   const DriverListPage({super.key});
 
@@ -67,8 +70,12 @@ class _DriverListPageState extends State<DriverListPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            EditDriverPage(docId: docId, data: data, adminId: adminId!),
+        builder: (_) => EditDriverPage(
+          docId: docId,
+          data: data,
+          adminId: adminId!,
+          adminName: 'name', // will be fetched properly by log service
+        ),
       ),
     );
   }
@@ -97,13 +104,8 @@ class _DriverListPageState extends State<DriverListPage> {
                     .doc(docId)
                     .delete();
 
-                // Add log using correct adminId
-                await FirebaseFirestore.instance.collection('logs').add({
-                  'admin_id': adminId,
-                  'action': "Deleted driver: $name",
-                  'timestamp': FieldValue.serverTimestamp(),
-                  'localTime': DateTime.now(),
-                });
+                // ✅ Add log using service
+                await addLog("Deleted driver: $name");
 
                 Navigator.pop(context);
               },
@@ -259,7 +261,7 @@ class _DriverListPageState extends State<DriverListPage> {
     final List<Widget> _pages = [
       const HomePage(),
       _buildDriverList(),
-      const AdminBusSchedulePage(),
+      AdminBusSchedulePage(adminId: adminId ?? '', adminName: 'name'),
     ];
 
     return Scaffold(
@@ -378,19 +380,6 @@ class _AddDriverPageState extends State<AddDriverPage> {
   final TextEditingController ageController = TextEditingController();
   final TextEditingController contactController = TextEditingController();
 
-  /// Add log to Firestore and HomePage cache
-  Future<void> _addLog(String action) async {
-    final now = DateTime.now();
-
-    // Instant UI feedback handled by HomePage localLogs
-    await FirebaseFirestore.instance.collection('logs').add({
-      'admin_id': widget.adminId,
-      'action': action,
-      'timestamp': FieldValue.serverTimestamp(),
-      'localTime': now,
-    });
-  }
-
   void _saveDriver() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -410,7 +399,8 @@ class _AddDriverPageState extends State<AddDriverPage> {
       'ownerId': user.uid,
     });
 
-    await _addLog("Added driver: ${nameController.text.trim()}");
+    // ✅ Log with service
+    await addLog("Added driver: ${nameController.text.trim()}");
 
     Navigator.pop(context);
   }
@@ -439,14 +429,9 @@ class _AddDriverPageState extends State<AddDriverPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Add Driver",
-          style: TextStyle(color: Colors.white), // Title text color white
-        ),
-        backgroundColor: const Color(0xFF103A74), // Keep original color
-        iconTheme: const IconThemeData(
-          color: Colors.white, // Back button color white
-        ),
+        title: const Text("Add Driver", style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF103A74),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -486,12 +471,14 @@ class EditDriverPage extends StatefulWidget {
   final String docId;
   final Map<String, dynamic> data;
   final String adminId;
+  final String adminName;
 
   const EditDriverPage({
     super.key,
     required this.docId,
     required this.data,
     required this.adminId,
+    required this.adminName,
   });
 
   @override
@@ -517,18 +504,6 @@ class _EditDriverPageState extends State<EditDriverPage> {
     );
   }
 
-  /// Add log to Firestore and HomePage cache
-  Future<void> _addLog(String action) async {
-    final now = DateTime.now();
-
-    await FirebaseFirestore.instance.collection('logs').add({
-      'admin_id': widget.adminId,
-      'action': action,
-      'timestamp': FieldValue.serverTimestamp(),
-      'localTime': now,
-    });
-  }
-
   void _updateDriver() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -545,7 +520,8 @@ class _EditDriverPageState extends State<EditDriverPage> {
           'updatedAt': FieldValue.serverTimestamp(),
         });
 
-    await _addLog("Updated driver: ${nameController.text.trim()}");
+    // ✅ Log with service
+    await addLog("Updated driver: ${nameController.text.trim()}");
 
     Navigator.pop(context);
   }
@@ -574,14 +550,9 @@ class _EditDriverPageState extends State<EditDriverPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Edit Driver",
-          style: TextStyle(color: Colors.white), // Title text color white
-        ),
-        backgroundColor: const Color(0xFF103A74), // Keep original color
-        iconTheme: const IconThemeData(
-          color: Colors.white, // Back button color white
-        ),
+        title: const Text("Edit Driver", style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF103A74),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

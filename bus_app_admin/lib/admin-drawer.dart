@@ -78,7 +78,11 @@ class AdminDrawer extends StatelessWidget {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => const AdminBusSchedulePage(),
+              builder: (context) => AdminBusSchedulePage(
+                adminId: 'yourAdminId', // TODO: Replace with actual adminId
+                adminName:
+                    'yourAdminName', // TODO: Replace with actual adminName
+              ),
             ),
           );
         }
