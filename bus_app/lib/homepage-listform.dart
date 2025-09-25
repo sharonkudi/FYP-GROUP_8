@@ -29,13 +29,18 @@ class _ListFormPageState extends State<ListFormPage>
 
   final List<Map<String, dynamic>> _allStops = [
     {'name': 'The Mall Gadong', 'lat': 4.868942, 'lng': 114.903128},
-    {'name': 'Yayasan Complex', 'lat': 4.8647, 'lng': 114.9022},
+    {'name': 'Yayasan Complex', 'lat': 4.90706, 'lng': 114.91618},
     {'name': 'Kianggeh', 'lat': 4.893884, 'lng': 114.944413},
     {'name': 'Ong Sum Ping', 'lat': 4.887325, 'lng': 114.942857},
     {'name': 'PB School', 'lat': 4.904819, 'lng': 114.933152},
     {'name': 'Ministry of Finance', 'lat': 4.8892, 'lng': 114.9489},
-    {'name': 'Test Stop 500m Away', 'lat': 4.90332, 'lng': 114.87272},
   ];
+
+final Map<String, List<String>> stopGroups = {
+  "PB School": ["PB School", "Ong Sum Ping"],
+  "Ong Sum Ping": ["Ong Sum Ping", "PB School"], // group both ways
+};
+
 
   late List<Map<String, dynamic>> _displayedStops;
   Position? _userPosition;
@@ -45,69 +50,83 @@ class _ListFormPageState extends State<ListFormPage>
   String? selectedFrom;
   String? selectedTo;
 
-  @override
-  void initState() {
-    super.initState();
-    _displayedStops = List<Map<String, dynamic>>.from(_allStops);
+  bool _hasLocationPermission = false; // track permission once
 
-    // Request the current position once
-    _determinePosition();
+@override
+void initState() {
+  super.initState();
+  _displayedStops = List<Map<String, dynamic>>.from(_allStops);
 
-    // Listen to GPS updates continuously
-    _positionStream = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 1,
-      ),
-    ).listen((position) {
-      if (mounted) {
-        setState(() {
-          _userPosition = position;
-        });
-      }
-    });
+  // Request the current position once
+  _determinePosition();
 
-    // ✅ Add periodic polling for emulator (or slow updates)
-    _locationTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
-      if (!mounted) return;
-      final position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
-      setState(() {
-        _userPosition = position;
-      });
-    });
-  }
-
-  Future<void> _determinePosition() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return;
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) return;
-    }
-
-    if (permission == LocationPermission.deniedForever) return;
-
-    final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
+  // Listen to GPS updates continuously
+  _positionStream = Geolocator.getPositionStream(
+    locationSettings: const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 1,
+    ),
+  ).listen((position) {
     if (mounted) {
       setState(() {
         _userPosition = position;
       });
     }
+  });
+
+  // Timer for emulator or slow updates
+  _locationTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+    if (!mounted) return;
+
+    // ✅ Only call getCurrentPosition if permission is granted
+    if (_hasLocationPermission) {
+      final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+      if (mounted) {
+        setState(() {
+          _userPosition = position;
+        });
+      }
+    }
+  });
+}
+
+Future<void> _determinePosition() async {
+  bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  if (!serviceEnabled) {
+    // ✅ Just return silently if GPS is off (no popup)
+    return;
   }
 
-  @override
-  void dispose() {
-    _positionStream?.cancel();
-    _locationTimer?.cancel(); // ✅ Cancel timer on dispose
-    super.dispose();
+  LocationPermission permission = await Geolocator.checkPermission();
+  if (permission == LocationPermission.denied) {
+    permission = await Geolocator.requestPermission();
   }
+
+  if (permission == LocationPermission.denied ||
+      permission == LocationPermission.deniedForever) {
+    return; // stop if still denied
+  }
+
+  // ✅ Permission granted
+  _hasLocationPermission = true;
+
+  final position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high);
+  if (mounted) {
+    setState(() {
+      _userPosition = position;
+    });
+  }
+}
+
+@override
+void dispose() {
+  _positionStream?.cancel();
+  _locationTimer?.cancel();
+  super.dispose();
+}
+
 
   @override
   bool get wantKeepAlive => true; // keep alive across tab switches
@@ -144,24 +163,38 @@ class _ListFormPageState extends State<ListFormPage>
   }
 
   void _applyFilter() {
-    if ((selectedFrom == null || selectedFrom!.isEmpty) &&
-        (selectedTo == null || selectedTo!.isEmpty)) {
-      setState(() {
-        _displayedStops = List<Map<String, dynamic>>.from(_allStops);
-      });
-      return;
-    }
-
+  if ((selectedFrom == null || selectedFrom!.isEmpty) &&
+      (selectedTo == null || selectedTo!.isEmpty)) {
     setState(() {
-      _displayedStops = _allStops.where((stop) {
-        final name = stop['name'] ?? '';
-        final fromOk =
-            (selectedFrom != null && _matchesQuery(name, selectedFrom!));
-        final toOk = (selectedTo != null && _matchesQuery(name, selectedTo!));
-        return fromOk || toOk;
-      }).toList();
+      _displayedStops = List<Map<String, dynamic>>.from(_allStops);
     });
+    return;
   }
+
+  setState(() {
+    _displayedStops = _allStops.where((stop) {
+      final name = stop['name'] ?? '';
+
+      // If 'to' stop belongs to a group, expand it
+      final toTargets = selectedTo != null && selectedTo!.isNotEmpty
+          ? (stopGroups[selectedTo] ?? [selectedTo!])
+          : [];
+
+      // If 'from' stop belongs to a group, expand it
+      final fromTargets = selectedFrom != null && selectedFrom!.isNotEmpty
+          ? (stopGroups[selectedFrom] ?? [selectedFrom!])
+          : [];
+
+      final fromOk = fromTargets.isNotEmpty &&
+          fromTargets.any((target) => _matchesQuery(name, target));
+      final toOk = toTargets.isNotEmpty &&
+          toTargets.any((target) => _matchesQuery(name, target));
+
+      return fromOk || toOk;
+    }).toList();
+  });
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -195,68 +228,62 @@ class _ListFormPageState extends State<ListFormPage>
                 ],
               ),
             ),
-          // Search Row
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: selectedFrom,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'From',
-                      prefixIcon: Icon(Icons.directions_bus_filled,
-                          color: Color.fromARGB(255, 94, 105, 120)),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                    items: locations
-                        .map((loc) => DropdownMenuItem<String>(
-                              value: loc,
-                              child: Text(loc, overflow: TextOverflow.ellipsis),
-                            ))
-                        .toList(),
-                    onChanged: (val) {
-                      setState(() => selectedFrom = val);
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: selectedTo,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'To',
-                      prefixIcon: Icon(Icons.flag,
-                          color: Color.fromARGB(255, 94, 105, 120)),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                    items: locations
-                        .map((loc) => DropdownMenuItem<String>(
-                              value: loc,
-                              child: Text(loc, overflow: TextOverflow.ellipsis),
-                            ))
-                        .toList(),
-                    onChanged: (val) {
-                      setState(() => selectedTo = val);
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: IconButton(
-                    icon: const Icon(Icons.search, color: Colors.white),
-                    onPressed: _applyFilter,
-                  ),
-                ),
-              ],
-            ),
+          // Destination Search Row
+Padding(
+  padding: const EdgeInsets.all(8.0),
+  child: Row(
+    children: [
+      Expanded(
+        child: DropdownButtonFormField<String>(
+          value: selectedTo,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: 'Destination',
+            prefixIcon: Icon(Icons.flag,
+                color: Color.fromARGB(255, 94, 105, 120)),
+            filled: true,
+            fillColor: Colors.white,
           ),
+          items: locations
+              .map((loc) => DropdownMenuItem<String>(
+                    value: loc,
+                    child: Text(loc, overflow: TextOverflow.ellipsis),
+                  ))
+              .toList(),
+          onChanged: (val) {
+            setState(() => selectedTo = val);
+          },
+        ),
+      ),
+      const SizedBox(width: 8),
+      SizedBox(
+        width: 48,
+        height: 48,
+        child: IconButton(
+          icon: const Icon(Icons.search, color: Colors.white),
+          onPressed: () {
+            if (selectedTo != null) {
+              setState(() {
+                // Get the group stops if defined, else just the single one
+                List<String> groupStops = stopGroups[selectedTo] ?? [selectedTo!];
+
+                _displayedStops = _allStops.where((stop) {
+                  return groupStops.contains(stop['name']);
+                }).toList();
+              });
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Please select a destination."),
+                ),
+              );
+            }
+          },
+        ),
+      ),
+    ],
+  ),
+),
           // Title row
           Padding(
             padding:
@@ -315,7 +342,7 @@ class _ListFormPageState extends State<ListFormPage>
                     : double.infinity;
                 final distanceText = _formatDistance(distance);
 
-                final isNearby = distance <= 800;
+                final isNearby = distance <= 900;
 
                 return BusStopCard(
                   name: name,
