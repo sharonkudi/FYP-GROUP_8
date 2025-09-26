@@ -58,10 +58,6 @@ class _HomePageState extends State<Home> {
     },
   ];
 
-  void _clearRoutePreview() {
-    _mapKey.currentState?.clearRoute();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -81,89 +77,8 @@ class _HomePageState extends State<Home> {
         index: _index,
         children: [
           const StopsListPage(),
-          MapPage(key: _mapKey),
+          MapFormPage(key: _mapKey),
         ],
-      ),
-      bottomNavigationBar: SafeArea(
-        minimum:
-            const EdgeInsets.fromLTRB(_dockHPad, 0, _dockHPad, _dockBottomSafe),
-        child: Container(
-          decoration: BoxDecoration(
-            color: kDockBg,
-            borderRadius: BorderRadius.circular(_dockRadius),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2)),
-            ],
-          ),
-          padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _DockTab(
-                      label: 'List Form',
-                      selected: _index == 0,
-                      onTap: () => setState(() {
-                        _index = 0;
-                        _panel = _PanelMode.none;
-                        _clearRoutePreview();
-                      }),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _DockTab(
-                      label: 'Map Form',
-                      selected: _index == 1,
-                      onTap: () => setState(() => _index = 1),
-                    ),
-                  ),
-                ],
-              ),
-              if (_index == 1) ...[
-                const SizedBox(height: 10),
-                _DockSearchBar(
-                  from: _fromStop,
-                  to: _toStop,
-                  items: _stopNames,
-                  onFromChanged: (v) => setState(() => _fromStop = v),
-                  onToChanged: (v) => setState(() => _toStop = v),
-                  onSearch: () {
-                    if (_fromStop == null || _toStop == null) return;
-                    _mapKey.currentState
-                        ?.showRouteBetween(_fromStop!, _toStop!);
-                    setState(() => _panel = _PanelMode.list);
-                  },
-                ),
-                if (_panel != _PanelMode.none) ...[
-                  const SizedBox(height: 10),
-                  if (_panel == _PanelMode.list)
-                    _BusListPanel(
-                      buses: _buses,
-                      onTapBus: (i) => setState(() {
-                        _selectedBusIndex = i;
-                        _panel = _PanelMode.detail;
-                      }),
-                    )
-                  else
-                    _BusDetailPanel(
-                      bus: _buses[_selectedBusIndex],
-                      onClose: () => setState(() => _panel = _PanelMode.list),
-                      onView: () {
-                        _mapKey.currentState
-                            ?.showRouteBetween(_fromStop!, _toStop!);
-                      },
-                    ),
-                ],
-              ],
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -203,7 +118,7 @@ class _DockTab extends StatelessWidget {
   }
 }
 
-/// Search bar
+/// Fully adaptive Search bar (text shrinks to prevent overflow)
 class _DockSearchBar extends StatelessWidget {
   final String? from, to;
   final List<String> items;
@@ -223,51 +138,75 @@ class _DockSearchBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final dd = items
         .map((n) => DropdownMenuItem<String>(
-            value: n, child: Text(n, overflow: TextOverflow.ellipsis)))
+              value: n,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  n,
+                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                ),
+              ),
+            ))
         .toList();
 
     return Container(
-      height: 52,
+      height: 56,
       decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(14)),
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
-          Expanded(
+          // From dropdown
+          Flexible(
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: from,
-                hint: const Text('From'),
+                hint: const Text(
+                  'From',
+                  style: TextStyle(fontSize: 13, color: Colors.black54),
+                ),
                 isExpanded: true,
                 items: dd,
                 onChanged: onFromChanged,
+                icon: const Icon(Icons.arrow_drop_down, size: 20),
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          Expanded(
+          const SizedBox(width: 12),
+          // To dropdown
+          Flexible(
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: to,
-                hint: const Text('To'),
+                hint: const Text(
+                  'To',
+                  style: TextStyle(fontSize: 13, color: Colors.black54),
+                ),
                 isExpanded: true,
                 items: dd,
                 onChanged: onToChanged,
+                icon: const Icon(Icons.arrow_drop_down, size: 20),
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          InkWell(
-            onTap: onSearch,
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              width: 44,
-              height: 40,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
+          const SizedBox(width: 12),
+          // Search button
+          SizedBox(
+            width: 42,
+            height: 42,
+            child: InkWell(
+              onTap: onSearch,
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                decoration: BoxDecoration(
                   color: _HomePageState.kBlue,
-                  borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.search, color: Colors.white),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.search, color: Colors.white, size: 20),
+              ),
             ),
           ),
         ],
@@ -275,6 +214,9 @@ class _DockSearchBar extends StatelessWidget {
     );
   }
 }
+
+
+
 
 /// Bus List Panel
 class _BusListPanel extends StatelessWidget {
@@ -339,76 +281,6 @@ class _BusListPanel extends StatelessWidget {
                 ),
               ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Bus Detail Panel
-class _BusDetailPanel extends StatelessWidget {
-  final Map<String, String> bus;
-  final VoidCallback onClose;
-  final VoidCallback onView;
-  const _BusDetailPanel(
-      {required this.bus, required this.onClose, required this.onView});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("${bus['route']}",
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
-          Text("Depart: ${bus['depart']}"),
-          Text("Arrive: ${bus['arrive']}"),
-          Text("Bus Number: ${bus['no']}"),
-          Text("Driver: ${bus['driver']}",
-              style: const TextStyle(
-                  color: _HomePageState.kBlueLight, // ✅ use kBlueLight
-                  fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: onClose,
-                  child: const Text("Back"),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => BusRoutePage(
-                          busId: bus['no'] ?? '', // Pass bus number or ID
-                          stops: [
-                            // Pass your stops data here if needed
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                  ),
-                  child: const Text("View Bus"),
-                ),
-              ),
-            ],
-          )
         ],
       ),
     );

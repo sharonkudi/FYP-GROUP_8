@@ -140,10 +140,12 @@ class _MyAppState extends State<MyApp> {
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final int initialTab; // 0 = List Form, 1 = Map Form
+
+  const HomePage({super.key, this.initialTab = 0});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage>
@@ -154,6 +156,8 @@ class _HomePageState extends State<HomePage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.index = widget.initialTab; // start at desired tab
+    
   }
 
   @override

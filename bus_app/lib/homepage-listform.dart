@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'homepage-availablebuses.dart';
 import 'package:bus_app/l10n/app_localizations.dart' show AppLocalizations;
 import 'package:flutter/material.dart';
 import 'package:bus_app/no_internet_page.dart';
+import 'package:geolocator/geolocator.dart';
 
 class ListFormPage extends StatefulWidget {
   const ListFormPage({super.key});
@@ -10,11 +13,11 @@ class ListFormPage extends StatefulWidget {
   State<ListFormPage> createState() => _ListFormPageState();
 }
 
-class _ListFormPageState extends State<ListFormPage> {
+class _ListFormPageState extends State<ListFormPage>
+    with AutomaticKeepAliveClientMixin {
   final fromController = TextEditingController();
   final toController = TextEditingController();
 
-  // Your dropdown source list
   final List<String> locations = [
     'The Mall Gadong',
     'Ong Sum Ping',
@@ -24,26 +27,130 @@ class _ListFormPageState extends State<ListFormPage> {
     'Ministry of Finance',
   ];
 
-  // Bus stops shown in "Bus Stops near me"
-  final List<Map<String, String>> _allStops = const [
-    {'name': 'The Mall Gadong', 'distance': '100m away'},
-    {'name': 'Yayasan Complex', 'distance': '1km away'},
-    {'name': 'Kianggeh', 'distance': '500m away'},
-    {'name': 'Ong Sum Ping', 'distance': '2km away'},
-    {'name': 'PB School', 'distance': '1.5km away'},
-    {'name': 'Ministry of Finance', 'distance': '3.5km away'},
+  final List<Map<String, dynamic>> _allStops = [
+    {'name': 'The Mall Gadong', 'lat': 4.868942, 'lng': 114.903128},
+    {'name': 'Yayasan Complex', 'lat': 4.90706, 'lng': 114.91618},
+    {'name': 'Kianggeh', 'lat': 4.893884, 'lng': 114.944413},
+    {'name': 'Ong Sum Ping', 'lat': 4.887325, 'lng': 114.942857},
+    {'name': 'PB School', 'lat': 4.904819, 'lng': 114.933152},
+    {'name': 'Ministry of Finance', 'lat': 4.8892, 'lng': 114.9489},
   ];
 
-  late List<Map<String, String>> _displayedStops;
+final Map<String, List<String>> stopGroups = {
+  "PB School": ["PB School", "Ong Sum Ping"],
+  "Ong Sum Ping": ["Ong Sum Ping", "PB School"], // group both ways
+};
+
+
+  late List<Map<String, dynamic>> _displayedStops;
+  Position? _userPosition;
+  StreamSubscription<Position>? _positionStream;
+  Timer? _locationTimer; // ✅ Add a timer for real-time updates
 
   String? selectedFrom;
   String? selectedTo;
 
-  @override
-  void initState() {
-    super.initState();
-    _displayedStops = List<Map<String, String>>.from(_allStops);
+  bool _hasLocationPermission = false; // track permission once
+
+@override
+void initState() {
+  super.initState();
+  _displayedStops = List<Map<String, dynamic>>.from(_allStops);
+
+  // Request the current position once
+  _determinePosition();
+
+  // Listen to GPS updates continuously
+  _positionStream = Geolocator.getPositionStream(
+    locationSettings: const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 1,
+    ),
+  ).listen((position) {
+    if (mounted) {
+      setState(() {
+        _userPosition = position;
+      });
+    }
+  });
+
+  // Timer for emulator or slow updates
+  _locationTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+    if (!mounted) return;
+
+    // ✅ Only call getCurrentPosition if permission is granted
+    if (_hasLocationPermission) {
+      final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+      if (mounted) {
+        setState(() {
+          _userPosition = position;
+        });
+      }
+    }
+  });
+}
+
+Future<void> _determinePosition() async {
+  bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  if (!serviceEnabled) {
+    // ✅ Just return silently if GPS is off (no popup)
+    return;
   }
+
+  LocationPermission permission = await Geolocator.checkPermission();
+  if (permission == LocationPermission.denied) {
+    permission = await Geolocator.requestPermission();
+  }
+
+  if (permission == LocationPermission.denied ||
+      permission == LocationPermission.deniedForever) {
+    return; // stop if still denied
+  }
+
+  // ✅ Permission granted
+  _hasLocationPermission = true;
+
+  final position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high);
+  if (mounted) {
+    setState(() {
+      _userPosition = position;
+    });
+  }
+}
+
+@override
+void dispose() {
+  _positionStream?.cancel();
+  _locationTimer?.cancel();
+  super.dispose();
+}
+
+
+  @override
+  bool get wantKeepAlive => true; // keep alive across tab switches
+
+  String _formatDistance(double distanceInMeters) {
+    if (distanceInMeters == double.infinity) return 'Locating...';
+    if (distanceInMeters < 1000) {
+      return '${distanceInMeters.toStringAsFixed(0)} m away';
+    } else {
+      return '${(distanceInMeters / 1000).toStringAsFixed(2)} km away';
+    }
+  }
+
+  double _calculateDistance(double lat, double lng) {
+    if (_userPosition == null) return double.infinity;
+    return Geolocator.distanceBetween(
+      _userPosition!.latitude,
+      _userPosition!.longitude,
+      lat,
+      lng,
+    );
+    
+  }
+  
 
   bool _matchesQuery(String name, String query) {
     final lowerName = name.toLowerCase();
@@ -56,95 +163,128 @@ class _ListFormPageState extends State<ListFormPage> {
   }
 
   void _applyFilter() {
-    if ((selectedFrom == null || selectedFrom!.isEmpty) &&
-        (selectedTo == null || selectedTo!.isEmpty)) {
-      setState(() {
-        _displayedStops = List<Map<String, String>>.from(_allStops);
-      });
-      return;
-    }
-
+  if ((selectedFrom == null || selectedFrom!.isEmpty) &&
+      (selectedTo == null || selectedTo!.isEmpty)) {
     setState(() {
-      _displayedStops = _allStops.where((stop) {
-        final name = stop['name'] ?? '';
-        final fromOk =
-            (selectedFrom != null && _matchesQuery(name, selectedFrom!));
-        final toOk = (selectedTo != null && _matchesQuery(name, selectedTo!));
-
-        return fromOk || toOk;
-      }).toList();
+      _displayedStops = List<Map<String, dynamic>>.from(_allStops);
     });
+    return;
   }
+
+  setState(() {
+    _displayedStops = _allStops.where((stop) {
+      final name = stop['name'] ?? '';
+
+      // If 'to' stop belongs to a group, expand it
+      final toTargets = selectedTo != null && selectedTo!.isNotEmpty
+          ? (stopGroups[selectedTo] ?? [selectedTo!])
+          : [];
+
+      // If 'from' stop belongs to a group, expand it
+      final fromTargets = selectedFrom != null && selectedFrom!.isNotEmpty
+          ? (stopGroups[selectedFrom] ?? [selectedFrom!])
+          : [];
+
+      final fromOk = fromTargets.isNotEmpty &&
+          fromTargets.any((target) => _matchesQuery(name, target));
+      final toOk = toTargets.isNotEmpty &&
+          toTargets.any((target) => _matchesQuery(name, target));
+
+      return fromOk || toOk;
+    }).toList();
+  });
+}
+
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // must call with AutomaticKeepAliveClientMixin
+
+    // ✅ Sort once per build outside ListView
+    _displayedStops.sort((a, b) {
+      final distA = _calculateDistance(a['lat'], a['lng']);
+      final distB = _calculateDistance(b['lat'], b['lng']);
+      return distA.compareTo(distB);
+    });
+
     return Container(
       color: const Color(0xFF103A74),
       child: Column(
         children: [
-          // Search Row
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: selectedFrom,
-                    isExpanded: true, // avoids overflow
-                    decoration: const InputDecoration(
-                      labelText: 'From',
-                      prefixIcon: Icon(Icons.directions_bus_filled,
-                          color: Color.fromARGB(255, 94, 105, 120)),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                    items: locations
-                        .map((loc) => DropdownMenuItem<String>(
-                              value: loc,
-                              child: Text(loc, overflow: TextOverflow.ellipsis),
-                            ))
-                        .toList(),
-                    onChanged: (val) {
-                      setState(() => selectedFrom = val);
-                    },
+          if (_userPosition != null)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Lat: ${_userPosition!.latitude.toStringAsFixed(5)}, Lng: ${_userPosition!.longitude.toStringAsFixed(5)}',
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: selectedTo,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'To',
-                      prefixIcon: Icon(Icons.flag,
-                          color: Color.fromARGB(255, 94, 105, 120)),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                    items: locations
-                        .map((loc) => DropdownMenuItem<String>(
-                              value: loc,
-                              child: Text(loc, overflow: TextOverflow.ellipsis),
-                            ))
-                        .toList(),
-                    onChanged: (val) {
-                      setState(() => selectedTo = val);
-                    },
+                  IconButton(
+                    icon: const Icon(Icons.my_location, color: Colors.white),
+                    onPressed: () {},
                   ),
-                ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: IconButton(
-                    icon: const Icon(Icons.search, color: Colors.white),
-                    onPressed: _applyFilter,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
+          // Destination Search Row
+Padding(
+  padding: const EdgeInsets.all(8.0),
+  child: Row(
+    children: [
+      Expanded(
+        child: DropdownButtonFormField<String>(
+          value: selectedTo,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: 'Destination',
+            prefixIcon: Icon(Icons.flag,
+                color: Color.fromARGB(255, 94, 105, 120)),
+            filled: true,
+            fillColor: Colors.white,
           ),
-          // Title row with "Bus Stops near me" and "View All"
+          items: locations
+              .map((loc) => DropdownMenuItem<String>(
+                    value: loc,
+                    child: Text(loc, overflow: TextOverflow.ellipsis),
+                  ))
+              .toList(),
+          onChanged: (val) {
+            setState(() => selectedTo = val);
+          },
+        ),
+      ),
+      const SizedBox(width: 8),
+      SizedBox(
+        width: 48,
+        height: 48,
+        child: IconButton(
+          icon: const Icon(Icons.search, color: Colors.white),
+          onPressed: () {
+            if (selectedTo != null) {
+              setState(() {
+                // Get the group stops if defined, else just the single one
+                List<String> groupStops = stopGroups[selectedTo] ?? [selectedTo!];
+
+                _displayedStops = _allStops.where((stop) {
+                  return groupStops.contains(stop['name']);
+                }).toList();
+              });
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Please select a destination."),
+                ),
+              );
+            }
+          },
+        ),
+      ),
+    ],
+  ),
+),
+          // Title row
           Padding(
             padding:
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -162,9 +302,9 @@ class _ListFormPageState extends State<ListFormPage> {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor:
-                        const Color.fromARGB(255, 28, 105, 168), // button color
+                        const Color.fromARGB(255, 28, 105, 168),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8), // corner radius
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -172,7 +312,7 @@ class _ListFormPageState extends State<ListFormPage> {
                   onPressed: () {
                     setState(() {
                       _displayedStops =
-                          List<Map<String, String>>.from(_allStops);
+                          List<Map<String, dynamic>>.from(_allStops);
                       selectedFrom = null;
                       selectedTo = null;
                     });
@@ -185,6 +325,8 @@ class _ListFormPageState extends State<ListFormPage> {
               ],
             ),
           ),
+          // List of bus stops
+// ListView
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(8),
@@ -192,23 +334,30 @@ class _ListFormPageState extends State<ListFormPage> {
               itemBuilder: (context, index) {
                 final stop = _displayedStops[index];
                 final name = stop['name']!;
-                final distance = stop['distance']!;
+                final lat = stop['lat'] as double?;
+                final lng = stop['lng'] as double?;
 
-                // Every stop now has an active View button
-                final VoidCallback onView = () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          AvailableBusesPage(busStopName: name),
-                    ),
-                  );
-                };
+                final distance = (lat != null && lng != null)
+                    ? _calculateDistance(lat, lng)
+                    : double.infinity;
+                final distanceText = _formatDistance(distance);
+
+                final isNearby = distance <= 900;
 
                 return BusStopCard(
                   name: name,
-                  distance: distance,
-                  onView: onView,
+                  distance: distanceText,
+                  onView: isNearby
+                      ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  AvailableBusesPage(busStopName: name),
+                            ),
+                          );
+                        }
+                      : null,
                 );
               },
             ),
@@ -241,6 +390,9 @@ class BusStopCard extends StatelessWidget {
         subtitle: Text(distance, style: const TextStyle(color: Colors.black54)),
         trailing: ElevatedButton(
           onPressed: onView,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: onView == null ? Colors.grey : const Color(0xFF103A74),
+          ),
           child: const Text('View'),
         ),
       ),

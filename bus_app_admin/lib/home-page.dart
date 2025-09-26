@@ -3,6 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
+// 🔹 Import log service
+import 'logs_service.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -17,6 +20,10 @@ class HomePageState extends State<HomePage> {
 
   // 🔹 Session flag shared across the app
   static bool sessionLoginLogged = false;
+
+  // 🔹 New filter states
+  String? selectedAction;
+  DateTime? selectedDate;
 
   @override
   void initState() {
@@ -38,25 +45,17 @@ class HomePageState extends State<HomePage> {
         });
 
         // 🔹 Log "Logged in" only once per session
-        if (!HomePageState.sessionLoginLogged && adminId != null) {
+        if (!HomePageState.sessionLoginLogged &&
+            adminId != null &&
+            adminName != null) {
           HomePageState.sessionLoginLogged = true;
-          await _addLog("Logged in");
+          await addLog("Logged in");
         }
       }
     }
   }
 
-  Future<void> _addLog(String action) async {
-    if (adminId == null) return;
-
-    await FirebaseFirestore.instance.collection('logs').add({
-      'admin_id': adminId,
-      'admin_name': adminName, // ✅ so logs can show who did it
-      'action': action,
-      'timestamp': FieldValue.serverTimestamp(),
-      'localTime': DateTime.now(),
-    });
-  }
+  // ❌ Old log function removed, use addLog from service
 
   Future<void> _clearHistory() async {
     if (adminId == null) return;
@@ -70,7 +69,7 @@ class HomePageState extends State<HomePage> {
       await doc.reference.delete();
     }
 
-    await _addLog("Cleared history");
+    await addLog("Cleared history");
   }
 
   /// 🔹 Safely parse log time (Timestamp or DateTime)
@@ -119,7 +118,7 @@ class HomePageState extends State<HomePage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text(
-                        "Welcome back 👋",
+                        "Welcome 👋",
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w400,
@@ -140,64 +139,106 @@ class HomePageState extends State<HomePage> {
                 ),
               ),
 
-            // ✅ Clear History Button
-            if (adminId != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final confirm = await showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text("Clear History"),
-                        content: const Text(
-                          "Are you sure you want to clear your entire history?",
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text(
-                              "Cancel",
-                              style: TextStyle(color: Colors.black),
-                            ),
-                          ),
-                          ElevatedButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                            ),
-                            child: const Text(
-                              "Yes, Clear",
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
+            // ✅ Filters Row
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8,
+              ),
+              child: Row(
+                children: [
+                  // Filter by Date
+                  IconButton(
+                    icon: const Icon(Icons.date_range, color: Colors.blueGrey),
+                    onPressed: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        setState(() => selectedDate = picked);
+                      }
+                    },
+                  ),
 
-                    if (confirm == true) {
-                      await _clearHistory();
-                    }
-                  },
-                  icon: const Icon(Icons.delete_forever),
-                  label: const Text("Clear History"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 14,
-                      horizontal: 20,
+                  const SizedBox(width: 8),
+
+                  // Filter by Date
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate ?? DateTime.now(),
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null) {
+                          setState(() => selectedDate = picked);
+                        }
+                      },
+                      icon: const Icon(
+                        Icons.date_range,
+                        color: Colors.blueGrey,
+                      ),
+                      label: Text(
+                        selectedDate == null
+                            ? "Filter by Date"
+                            : DateFormat("MMM d, yyyy").format(selectedDate!),
+                        style: const TextStyle(color: Colors.blueGrey),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 16,
+                        ),
+                        side: const BorderSide(color: Colors.blueGrey),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+
+                  const SizedBox(width: 8),
+
+                  // Filter by Action
+                  DropdownButton<String>(
+                    value: selectedAction,
+                    hint: const Text("Action"),
+                    items: ["Update", "Delete", "Add", "Assigned driver"]
+                        .map(
+                          (action) => DropdownMenuItem(
+                            value: action,
+                            child: Text(action),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() => selectedAction = value);
+                    },
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  // Reset Filters Button
+                  IconButton(
+                    icon: const Icon(Icons.clear, color: Colors.redAccent),
+                    tooltip: "Clear Filters",
+                    onPressed: () {
+                      setState(() {
+                        selectedAction = null;
+                        selectedDate = null;
+                      });
+                    },
+                  ),
+                ],
               ),
+            ),
 
-            const SizedBox(height: 12),
-
-            // ✅ Activity Feed Container with Label
+            // ✅ Activity Feed
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -273,11 +314,32 @@ class HomePageState extends State<HomePage> {
                                     ).compareTo(_parseLogTime(a)),
                                   );
 
+                                  // 🔹 Apply filters
+                                  var filteredLogs = logs.where((log) {
+                                    final date = _parseLogTime(log);
+                                    final action = (log['action'] ?? "")
+                                        .toString();
+
+                                    final matchesDate =
+                                        selectedDate == null ||
+                                        (date.year == selectedDate!.year &&
+                                            date.month == selectedDate!.month &&
+                                            date.day == selectedDate!.day);
+
+                                    final matchesAction =
+                                        selectedAction == null ||
+                                        action.toLowerCase().contains(
+                                          selectedAction!.toLowerCase(),
+                                        );
+
+                                    return matchesDate && matchesAction;
+                                  }).toList();
+
                                   return ListView.builder(
                                     padding: const EdgeInsets.all(16),
-                                    itemCount: logs.length,
+                                    itemCount: filteredLogs.length,
                                     itemBuilder: (context, index) {
-                                      final log = logs[index];
+                                      final log = filteredLogs[index];
                                       final action =
                                           log['action'] ?? "Unknown action";
                                       final dateTime = _parseLogTime(log);
@@ -287,15 +349,15 @@ class HomePageState extends State<HomePage> {
 
                                       Color tagColor = Colors.grey;
                                       if (action.toLowerCase().contains(
-                                        "added",
+                                        "add",
                                       )) {
                                         tagColor = Colors.green;
                                       } else if (action.toLowerCase().contains(
-                                        "updated",
+                                        "update",
                                       )) {
                                         tagColor = Colors.orange;
                                       } else if (action.toLowerCase().contains(
-                                        "deleted",
+                                        "delete",
                                       )) {
                                         tagColor = Colors.red;
                                       }
@@ -328,7 +390,7 @@ class HomePageState extends State<HomePage> {
                                             ),
                                           ),
                                           subtitle: Text(
-                                            "${log['admin_name'] ?? log['admin_id']} • $formatted",
+                                            "${log['name'] ?? ''} (ID: ${log['admin_id'] ?? 'N/A'}) • $formatted",
                                             style: const TextStyle(
                                               fontSize: 13,
                                               color: Colors.grey,
