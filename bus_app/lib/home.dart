@@ -58,10 +58,6 @@ class _HomePageState extends State<Home> {
     },
   ];
 
-  void _clearRoutePreview() {
-    _mapKey.currentState?.clearRoute();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -122,7 +118,7 @@ class _DockTab extends StatelessWidget {
   }
 }
 
-/// Search bar
+/// Fully adaptive Search bar (text shrinks to prevent overflow)
 class _DockSearchBar extends StatelessWidget {
   final String? from, to;
   final List<String> items;
@@ -142,51 +138,75 @@ class _DockSearchBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final dd = items
         .map((n) => DropdownMenuItem<String>(
-            value: n, child: Text(n, overflow: TextOverflow.ellipsis)))
+              value: n,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  n,
+                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                ),
+              ),
+            ))
         .toList();
 
     return Container(
-      height: 52,
+      height: 56,
       decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(14)),
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
-          Expanded(
+          // From dropdown
+          Flexible(
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: from,
-                hint: const Text('From'),
+                hint: const Text(
+                  'From',
+                  style: TextStyle(fontSize: 13, color: Colors.black54),
+                ),
                 isExpanded: true,
                 items: dd,
                 onChanged: onFromChanged,
+                icon: const Icon(Icons.arrow_drop_down, size: 20),
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          Expanded(
+          const SizedBox(width: 12),
+          // To dropdown
+          Flexible(
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: to,
-                hint: const Text('To'),
+                hint: const Text(
+                  'To',
+                  style: TextStyle(fontSize: 13, color: Colors.black54),
+                ),
                 isExpanded: true,
                 items: dd,
                 onChanged: onToChanged,
+                icon: const Icon(Icons.arrow_drop_down, size: 20),
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          InkWell(
-            onTap: onSearch,
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              width: 44,
-              height: 40,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
+          const SizedBox(width: 12),
+          // Search button
+          SizedBox(
+            width: 42,
+            height: 42,
+            child: InkWell(
+              onTap: onSearch,
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                decoration: BoxDecoration(
                   color: _HomePageState.kBlue,
-                  borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.search, color: Colors.white),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.search, color: Colors.white, size: 20),
+              ),
             ),
           ),
         ],
@@ -194,6 +214,9 @@ class _DockSearchBar extends StatelessWidget {
     );
   }
 }
+
+
+
 
 /// Bus List Panel
 class _BusListPanel extends StatelessWidget {
