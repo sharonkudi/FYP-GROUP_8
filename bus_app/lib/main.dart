@@ -1,12 +1,12 @@
-import 'package:bus_app/OfflineMapPage.dart' hide NoInternetPage;
 import 'package:bus_app/home.dart';
-import 'package:bus_app/l10n/app_localizations.dart' show AppLocalizations;
+import 'package:bus_app/l10n/app_localizations.dart';
 import 'package:bus_app/no_internet_page.dart';
 import 'package:bus_app/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'homepage-listform.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package/bus_app/OfflineMapPage.dart';
 
 // ✅ Settings + Provider
 import 'package:provider/provider.dart';
@@ -157,7 +157,6 @@ class _HomePageState extends State<HomePage>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.index = widget.initialTab; // start at desired tab
-    
   }
 
   @override
@@ -173,6 +172,9 @@ class _HomePageState extends State<HomePage>
 
   @override
   Widget build(BuildContext context) {
+    // ✅ Fetch localized strings
+    final localize = AppLocalizations.of(context)!;
+
     return Scaffold(
       drawer: Drawer(
         shape: const RoundedRectangleBorder(
@@ -197,9 +199,9 @@ class _HomePageState extends State<HomePage>
                           const Icon(Icons.directions_bus, color: Colors.white),
                     ),
                     const SizedBox(width: 12),
-                    const Text(
-                      'BasKu',
-                      style: TextStyle(
+                    Text(
+                      'BasKu', // App name can remain hardcoded if desired
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -214,8 +216,10 @@ class _HomePageState extends State<HomePage>
                   children: [
                     ListTile(
                       leading: const Icon(Icons.home, color: Colors.white),
-                      title: const Text('Home',
-                          style: TextStyle(color: Colors.white)),
+                      title: Text(
+                        localize.home, // localized
+                        style: const TextStyle(color: Colors.white),
+                      ),
                       onTap: _goToListForm,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
@@ -224,8 +228,10 @@ class _HomePageState extends State<HomePage>
                     ),
                     ListTile(
                       leading: const Icon(Icons.settings, color: Colors.white),
-                      title: const Text('Settings',
-                          style: TextStyle(color: Colors.white)),
+                      title: Text(
+                        localize.settings, // localized
+                        style: const TextStyle(color: Colors.white),
+                      ),
                       onTap: () {
                         Navigator.pop(context);
                         Navigator.push(
@@ -246,12 +252,12 @@ class _HomePageState extends State<HomePage>
         ),
       ),
       appBar: AppBar(
-        title: const Text('BasKu'),
+        title: Text(localize.appName), // localized
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'List Form'),
-            Tab(text: 'Map Form'),
+          tabs: [
+            Tab(text: localize.listForm), // localized
+            Tab(text: localize.mapForm), // localized
           ],
         ),
       ),

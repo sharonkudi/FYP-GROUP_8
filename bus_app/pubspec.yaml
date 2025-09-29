@@ -50,3 +50,4 @@ flutter:
   - lib/l10n/
   - assets/offline_map.png
   - assets/logoAsset.png
+  - assets/offline_busses.json

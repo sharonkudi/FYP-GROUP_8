@@ -1,7 +1,6 @@
 import 'dart:async';
-
 import 'homepage-availablebuses.dart';
-import 'package:bus_app/l10n/app_localizations.dart' show AppLocalizations;
+import 'package:bus_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:bus_app/no_internet_page.dart';
 import 'package:geolocator/geolocator.dart';
@@ -28,7 +27,7 @@ class _ListFormPageState extends State<ListFormPage>
   ];
 
   final List<Map<String, dynamic>> _allStops = [
-    {'name': 'The Mall Gadong', 'lat': 4.868942, 'lng': 114.903128},
+    {'name': 'The Mall Gadong', 'lat': 4.868942, 'lng': 114.903128}, // change to ur lat/lng here
     {'name': 'Yayasan Complex', 'lat': 4.90706, 'lng': 114.91618},
     {'name': 'Kianggeh', 'lat': 4.893884, 'lng': 114.944413},
     {'name': 'Ong Sum Ping', 'lat': 4.887325, 'lng': 114.942857},
@@ -36,100 +35,89 @@ class _ListFormPageState extends State<ListFormPage>
     {'name': 'Ministry of Finance', 'lat': 4.8892, 'lng': 114.9489},
   ];
 
-final Map<String, List<String>> stopGroups = {
-  "PB School": ["PB School", "Ong Sum Ping"],
-  "Ong Sum Ping": ["Ong Sum Ping", "PB School"], // group both ways
-};
-
+  final Map<String, List<String>> stopGroups = {
+    "PB School": ["PB School", "Ong Sum Ping"],
+    "Ong Sum Ping": ["Ong Sum Ping", "PB School"],
+  };
 
   late List<Map<String, dynamic>> _displayedStops;
   Position? _userPosition;
   StreamSubscription<Position>? _positionStream;
-  Timer? _locationTimer; // ✅ Add a timer for real-time updates
+  Timer? _locationTimer;
 
   String? selectedFrom;
   String? selectedTo;
+  bool _hasLocationPermission = false;
 
-  bool _hasLocationPermission = false; // track permission once
+  @override
+  void initState() {
+    super.initState();
+    _displayedStops = List<Map<String, dynamic>>.from(_allStops);
 
-@override
-void initState() {
-  super.initState();
-  _displayedStops = List<Map<String, dynamic>>.from(_allStops);
+    _determinePosition();
 
-  // Request the current position once
-  _determinePosition();
-
-  // Listen to GPS updates continuously
-  _positionStream = Geolocator.getPositionStream(
-    locationSettings: const LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 1,
-    ),
-  ).listen((position) {
-    if (mounted) {
-      setState(() {
-        _userPosition = position;
-      });
-    }
-  });
-
-  // Timer for emulator or slow updates
-  _locationTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
-    if (!mounted) return;
-
-    // ✅ Only call getCurrentPosition if permission is granted
-    if (_hasLocationPermission) {
-      final position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+    _positionStream = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 1,
+      ),
+    ).listen((position) {
       if (mounted) {
         setState(() {
           _userPosition = position;
         });
       }
-    }
-  });
-}
+    });
 
-Future<void> _determinePosition() async {
-  bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-  if (!serviceEnabled) {
-    // ✅ Just return silently if GPS is off (no popup)
-    return;
-  }
+    _locationTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+      if (!mounted) return;
 
-  LocationPermission permission = await Geolocator.checkPermission();
-  if (permission == LocationPermission.denied) {
-    permission = await Geolocator.requestPermission();
-  }
-
-  if (permission == LocationPermission.denied ||
-      permission == LocationPermission.deniedForever) {
-    return; // stop if still denied
-  }
-
-  // ✅ Permission granted
-  _hasLocationPermission = true;
-
-  final position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high);
-  if (mounted) {
-    setState(() {
-      _userPosition = position;
+      if (_hasLocationPermission) {
+        final position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high);
+        if (mounted) {
+          setState(() {
+            _userPosition = position;
+          });
+        }
+      }
     });
   }
-}
 
-@override
-void dispose() {
-  _positionStream?.cancel();
-  _locationTimer?.cancel();
-  super.dispose();
-}
+  Future<void> _determinePosition() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return;
 
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      return;
+    }
+
+    _hasLocationPermission = true;
+
+    final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    if (mounted) {
+      setState(() {
+        _userPosition = position;
+      });
+    }
+  }
 
   @override
-  bool get wantKeepAlive => true; // keep alive across tab switches
+  void dispose() {
+    _positionStream?.cancel();
+    _locationTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  bool get wantKeepAlive => true;
 
   String _formatDistance(double distanceInMeters) {
     if (distanceInMeters == double.infinity) return 'Locating...';
@@ -148,9 +136,7 @@ void dispose() {
       lat,
       lng,
     );
-    
   }
-  
 
   bool _matchesQuery(String name, String query) {
     final lowerName = name.toLowerCase();
@@ -163,44 +149,41 @@ void dispose() {
   }
 
   void _applyFilter() {
-  if ((selectedFrom == null || selectedFrom!.isEmpty) &&
-      (selectedTo == null || selectedTo!.isEmpty)) {
+    if ((selectedFrom == null || selectedFrom!.isEmpty) &&
+        (selectedTo == null || selectedTo!.isEmpty)) {
+      setState(() {
+        _displayedStops = List<Map<String, dynamic>>.from(_allStops);
+      });
+      return;
+    }
+
     setState(() {
-      _displayedStops = List<Map<String, dynamic>>.from(_allStops);
+      _displayedStops = _allStops.where((stop) {
+        final name = stop['name'] ?? '';
+
+        final toTargets = selectedTo != null && selectedTo!.isNotEmpty
+            ? (stopGroups[selectedTo] ?? [selectedTo!])
+            : [];
+
+        final fromTargets = selectedFrom != null && selectedFrom!.isNotEmpty
+            ? (stopGroups[selectedFrom] ?? [selectedFrom!])
+            : [];
+
+        final fromOk = fromTargets.isNotEmpty &&
+            fromTargets.any((target) => _matchesQuery(name, target));
+        final toOk = toTargets.isNotEmpty &&
+            toTargets.any((target) => _matchesQuery(name, target));
+
+        return fromOk || toOk;
+      }).toList();
     });
-    return;
   }
-
-  setState(() {
-    _displayedStops = _allStops.where((stop) {
-      final name = stop['name'] ?? '';
-
-      // If 'to' stop belongs to a group, expand it
-      final toTargets = selectedTo != null && selectedTo!.isNotEmpty
-          ? (stopGroups[selectedTo] ?? [selectedTo!])
-          : [];
-
-      // If 'from' stop belongs to a group, expand it
-      final fromTargets = selectedFrom != null && selectedFrom!.isNotEmpty
-          ? (stopGroups[selectedFrom] ?? [selectedFrom!])
-          : [];
-
-      final fromOk = fromTargets.isNotEmpty &&
-          fromTargets.any((target) => _matchesQuery(name, target));
-      final toOk = toTargets.isNotEmpty &&
-          toTargets.any((target) => _matchesQuery(name, target));
-
-      return fromOk || toOk;
-    }).toList();
-  });
-}
-
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // must call with AutomaticKeepAliveClientMixin
+    super.build(context);
+    final loc = AppLocalizations.of(context)!;
 
-    // ✅ Sort once per build outside ListView
     _displayedStops.sort((a, b) {
       final distA = _calculateDistance(a['lat'], a['lng']);
       final distB = _calculateDistance(b['lat'], b['lng']);
@@ -229,61 +212,62 @@ void dispose() {
               ),
             ),
           // Destination Search Row
-Padding(
-  padding: const EdgeInsets.all(8.0),
-  child: Row(
-    children: [
-      Expanded(
-        child: DropdownButtonFormField<String>(
-          value: selectedTo,
-          isExpanded: true,
-          decoration: const InputDecoration(
-            labelText: 'Destination',
-            prefixIcon: Icon(Icons.flag,
-                color: Color.fromARGB(255, 94, 105, 120)),
-            filled: true,
-            fillColor: Colors.white,
-          ),
-          items: locations
-              .map((loc) => DropdownMenuItem<String>(
-                    value: loc,
-                    child: Text(loc, overflow: TextOverflow.ellipsis),
-                  ))
-              .toList(),
-          onChanged: (val) {
-            setState(() => selectedTo = val);
-          },
-        ),
-      ),
-      const SizedBox(width: 8),
-      SizedBox(
-        width: 48,
-        height: 48,
-        child: IconButton(
-          icon: const Icon(Icons.search, color: Colors.white),
-          onPressed: () {
-            if (selectedTo != null) {
-              setState(() {
-                // Get the group stops if defined, else just the single one
-                List<String> groupStops = stopGroups[selectedTo] ?? [selectedTo!];
-
-                _displayedStops = _allStops.where((stop) {
-                  return groupStops.contains(stop['name']);
-                }).toList();
-              });
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Please select a destination."),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: selectedTo,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: loc.destination, // ✅ Localized
+                      prefixIcon: const Icon(Icons.flag,
+                          color: Color.fromARGB(255, 94, 105, 120)),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    items: locations
+                        .map((locName) => DropdownMenuItem<String>(
+                              value: locName,
+                              child: Text(locName,
+                                  overflow: TextOverflow.ellipsis),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      setState(() => selectedTo = val);
+                    },
+                  ),
                 ),
-              );
-            }
-          },
-        ),
-      ),
-    ],
-  ),
-),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: IconButton(
+                    icon: const Icon(Icons.search, color: Colors.white),
+                    onPressed: () {
+                      if (selectedTo != null) {
+                        setState(() {
+                          List<String> groupStops =
+                              stopGroups[selectedTo] ?? [selectedTo!];
+
+                          _displayedStops = _allStops.where((stop) {
+                            return groupStops.contains(stop['name']);
+                          }).toList();
+                        });
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(loc.selectDestination), // ✅ Localized
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
           // Title row
           Padding(
             padding:
@@ -291,9 +275,9 @@ Padding(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Bus Stops near me',
-                  style: TextStyle(
+                Text(
+                  loc.busStopsNearMe, // ✅ Localized
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -301,8 +285,7 @@ Padding(
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        const Color.fromARGB(255, 28, 105, 168),
+                    backgroundColor: const Color.fromARGB(255, 28, 105, 168),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -317,16 +300,15 @@ Padding(
                       selectedTo = null;
                     });
                   },
-                  child: const Text(
-                    'View All',
-                    style: TextStyle(color: Colors.white),
+                  child: Text(
+                    loc.viewAll, // ✅ Localized
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ),
               ],
             ),
           ),
           // List of bus stops
-// ListView
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(8),
@@ -382,6 +364,8 @@ class BusStopCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!; // ✅ Localized
+
     return Card(
       color: Colors.white,
       child: ListTile(
@@ -391,9 +375,10 @@ class BusStopCard extends StatelessWidget {
         trailing: ElevatedButton(
           onPressed: onView,
           style: ElevatedButton.styleFrom(
-            backgroundColor: onView == null ? Colors.grey : const Color(0xFF103A74),
+            backgroundColor:
+                onView == null ? Colors.grey : const Color(0xFF103A74),
           ),
-          child: const Text('View'),
+          child: Text(loc.view), // ✅ Localized
         ),
       ),
     );

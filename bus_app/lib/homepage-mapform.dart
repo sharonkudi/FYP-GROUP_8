@@ -6,6 +6,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:open_route_service/open_route_service.dart';
 import 'data/stops.dart';
+import 'package:bus_app/l10n/app_localizations.dart';
 
 class MapFormPage extends StatefulWidget {
   const MapFormPage({super.key});
@@ -63,20 +64,18 @@ class MapPageState extends State<MapFormPage> {
         distanceFilter: 10,
       ),
     ).listen((Position position) {
-      if (position != null) {
-        final currentLatLng = LatLng(position.latitude, position.longitude);
-        debugPrint('Device GPS Location updated: $currentLatLng');
-        setState(() {
-          _devicePosition = currentLatLng;
-        });
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          try {
-            mapController.move(currentLatLng, mapController.zoom);
-          } catch (e) {
-            debugPrint('Map move error: $e');
-          }
-        });
-      }
+      final currentLatLng = LatLng(position.latitude, position.longitude);
+      debugPrint('Device GPS Location updated: $currentLatLng');
+      setState(() {
+        _devicePosition = currentLatLng;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        try {
+          mapController.move(currentLatLng, mapController.zoom);
+        } catch (e) {
+          debugPrint('Map move error: $e');
+        }
+      });
     });
   }
 
@@ -124,8 +123,9 @@ class MapPageState extends State<MapFormPage> {
                   _toDouble(gpsMap['latitude']) ?? _toDouble(gpsMap['lat']);
               final lng =
                   _toDouble(gpsMap['longitude']) ?? _toDouble(gpsMap['lng']);
-              if (lat != null && lng != null)
+              if (lat != null && lng != null) {
                 updatedPositions['tracker'] = LatLng(lat, lng);
+              }
             }
           } catch (e) {
             debugPrint('Error parsing root gpsData: $e');
@@ -147,16 +147,18 @@ class MapPageState extends State<MapFormPage> {
                         _toDouble(gpsMap['lat']);
                     final lng = _toDouble(gpsMap['longitude']) ??
                         _toDouble(gpsMap['lng']);
-                    if (lat != null && lng != null)
+                    if (lat != null && lng != null) {
                       updatedPositions[busId.toString()] = LatLng(lat, lng);
+                    }
                   }
                 } else {
                   final lat =
                       _toDouble(busMap['latitude']) ?? _toDouble(busMap['lat']);
                   final lng = _toDouble(busMap['longitude']) ??
                       _toDouble(busMap['lng']);
-                  if (lat != null && lng != null)
+                  if (lat != null && lng != null) {
                     updatedPositions[busId.toString()] = LatLng(lat, lng);
+                  }
                 }
               } catch (e) {
                 debugPrint('Error parsing bus $busId: $e');
@@ -177,16 +179,18 @@ class MapPageState extends State<MapFormPage> {
                         _toDouble(gpsRaw['lat']);
                     final lng = _toDouble(gpsRaw['longitude']) ??
                         _toDouble(gpsRaw['lng']);
-                    if (lat != null && lng != null)
+                    if (lat != null && lng != null) {
                       updatedPositions[key.toString()] = LatLng(lat, lng);
+                    }
                   }
                 } else {
                   final lat = _toDouble(nodeMap['latitude']) ??
                       _toDouble(nodeMap['lat']);
                   final lng = _toDouble(nodeMap['longitude']) ??
                       _toDouble(nodeMap['lng']);
-                  if (lat != null && lng != null)
+                  if (lat != null && lng != null) {
                     updatedPositions[key.toString()] = LatLng(lat, lng);
+                  }
                 }
               }
             } catch (e) {
@@ -395,9 +399,9 @@ class MapPageState extends State<MapFormPage> {
             child: DropdownButton<String>(
               value: _selectedFromStop,
               dropdownColor: const Color(0xFF0B1B4D),
-              hint: const Text(
-                "From",
-                style: TextStyle(color: Colors.white70),
+              hint: Text(
+                AppLocalizations.of(context)!.from,
+                style: const TextStyle(color: Colors.white70),
               ),
               style: const TextStyle(color: Colors.white),
               iconEnabledColor: Colors.white,
@@ -413,7 +417,8 @@ class MapPageState extends State<MapFormPage> {
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.centerLeft,
-                          child: Text(name, style: const TextStyle(color: Colors.white)),
+                          child: Text(name,
+                              style: const TextStyle(color: Colors.white)),
                         ),
                       ),
                     ],
@@ -433,9 +438,9 @@ class MapPageState extends State<MapFormPage> {
             child: DropdownButton<String>(
               value: _selectedToStop,
               dropdownColor: const Color(0xFF0B1B4D),
-              hint: const Text(
-                "To",
-                style: TextStyle(color: Colors.white70),
+              hint: Text(
+                AppLocalizations.of(context)!.to,
+                style: const TextStyle(color: Colors.white70),
               ),
               style: const TextStyle(color: Colors.white),
               iconEnabledColor: Colors.white,
@@ -451,7 +456,8 @@ class MapPageState extends State<MapFormPage> {
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.centerLeft,
-                          child: Text(name, style: const TextStyle(color: Colors.white)),
+                          child: Text(name,
+                              style: const TextStyle(color: Colors.white)),
                         ),
                       ),
                     ],

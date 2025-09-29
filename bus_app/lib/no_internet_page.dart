@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:bus_app/l10n/app_localizations.dart';
 import 'OfflineMapPage.dart';
 
 class NoInternetPage extends StatelessWidget {
@@ -13,6 +14,8 @@ class NoInternetPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
@@ -23,8 +26,8 @@ class NoInternetPage extends StatelessWidget {
             children: [
               const Icon(Icons.wifi_off, size: 100, color: Colors.grey),
               const SizedBox(height: 16),
-              const Text(
-                "No Internet Connection",
+              Text(
+                loc.noInternetConnection,
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -33,8 +36,8 @@ class NoInternetPage extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
-              const Text(
-                "Please check your connection or continue with offline view.",
+              Text(
+                loc.offlineViewMessage,
                 style: TextStyle(fontSize: 16, color: Colors.black54),
                 textAlign: TextAlign.center,
               ),
@@ -44,7 +47,7 @@ class NoInternetPage extends StatelessWidget {
               ElevatedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),
-                label: const Text("Retry"),
+                label: Text(loc.retry),
               ),
 
               const SizedBox(height: 12),
@@ -59,7 +62,7 @@ class NoInternetPage extends StatelessWidget {
                   );
                 },
                 icon: const Icon(Icons.map),
-                label: const Text("View Offline Map"),
+                label: Text(loc.viewOfflineMap),
               ),
             ],
           ),

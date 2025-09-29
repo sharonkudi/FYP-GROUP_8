@@ -45,31 +45,25 @@ class AppLocalizationsMs extends AppLocalizations {
   String get save => 'Simpan';
 
   @override
-  String get fromLabel => 'Dari';
+  String get destination => 'Destinasi';
 
   @override
-  String get toLabel => 'Ke';
+  String get selectDestination => 'Sila pilih destinasi.';
 
   @override
-  String get from => 'Dari';
+  String get busStopsNearMe => 'Perhentian Bas berhampiran';
 
   @override
-  String get to => 'Ke';
-
-  @override
-  String get back => 'Kembali';
-
-  @override
-  String get viewBus => 'Lihat Bas';
-
-  @override
-  String get busStopsNearMe => 'Hentian bas berhampiran saya';
+  String get viewAll => 'Lihat Semua';
 
   @override
   String get view => 'Lihat';
 
   @override
-  String get busRoute => 'Laluan Bas';
+  String get appName => 'BasKu';
+
+  @override
+  String get home => 'Utama';
 
   @override
   String get listForm => 'Borang Senarai';
@@ -78,5 +72,72 @@ class AppLocalizationsMs extends AppLocalizations {
   String get mapForm => 'Borang Peta';
 
   @override
+  String get from => 'Dari';
+
+  @override
+  String get to => 'Ke';
+
+  @override
   String get availableBuses => 'Bas Tersedia';
+
+  @override
+  String get available => 'Tersedia';
+
+  @override
+  String get fareEstimator => 'Penganggar Tambang';
+
+  @override
+  String get totalFare => 'Jumlah Tambang';
+
+  @override
+  String get back => 'Kembali';
+
+  @override
+  String get viewBus => 'Lihat Bas';
+
+  @override
+  String get busRoute => 'Laluan Bas';
+
+  @override
+  String get nextBus => 'Bas Seterusnya';
+
+  @override
+  String get viewMap => 'Lihat Peta';
+
+  @override
+  String get arrived => 'Tiba';
+
+  @override
+  String get passed => 'Lalu';
+
+  @override
+  String get upcoming => 'Akan Datang';
+
+  @override
+  String get noInternetConnection => 'Tiada Sambungan Internet';
+
+  @override
+  String get offlineViewMessage =>
+      'Sila semak sambungan anda atau teruskan dengan paparan luar talian.';
+
+  @override
+  String get retry => 'Cuba Semula';
+
+  @override
+  String get viewOfflineMap => 'Lihat Peta Sistem Luar Talian';
+
+  @override
+  String get offlineMap => 'Peta Luar Talian';
+
+  @override
+  String get offlineSystemMap => 'Peta Sistem Luar Talian';
+
+  @override
+  String get offlineBusSchedule => 'Jadual Bas Luar Talian';
+
+  @override
+  String get adults => 'Dewasa';
+
+  @override
+  String get childrenSeniors => 'Kanak-kanak / Warga Emas';
 }

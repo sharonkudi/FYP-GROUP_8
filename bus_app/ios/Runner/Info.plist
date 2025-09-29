@@ -35,11 +35,14 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We need your location to show it on map</string>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
+
 	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>

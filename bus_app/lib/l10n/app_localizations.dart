@@ -170,41 +170,17 @@ abstract class AppLocalizations {
   /// **'Save'**
   String get save;
 
-  /// No description provided for @fromLabel.
+  /// No description provided for @destination.
   ///
   /// In en, this message translates to:
-  /// **'From'**
-  String get fromLabel;
+  /// **'Destination'**
+  String get destination;
 
-  /// No description provided for @toLabel.
+  /// No description provided for @selectDestination.
   ///
   /// In en, this message translates to:
-  /// **'To'**
-  String get toLabel;
-
-  /// No description provided for @from.
-  ///
-  /// In en, this message translates to:
-  /// **'From'**
-  String get from;
-
-  /// No description provided for @to.
-  ///
-  /// In en, this message translates to:
-  /// **'To'**
-  String get to;
-
-  /// No description provided for @back.
-  ///
-  /// In en, this message translates to:
-  /// **'Back'**
-  String get back;
-
-  /// No description provided for @viewBus.
-  ///
-  /// In en, this message translates to:
-  /// **'View Bus'**
-  String get viewBus;
+  /// **'Please select a destination.'**
+  String get selectDestination;
 
   /// No description provided for @busStopsNearMe.
   ///
@@ -212,17 +188,29 @@ abstract class AppLocalizations {
   /// **'Bus Stops near me'**
   String get busStopsNearMe;
 
+  /// No description provided for @viewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'View All'**
+  String get viewAll;
+
   /// No description provided for @view.
   ///
   /// In en, this message translates to:
   /// **'View'**
   String get view;
 
-  /// No description provided for @busRoute.
+  /// No description provided for @appName.
   ///
   /// In en, this message translates to:
-  /// **'Bus Route'**
-  String get busRoute;
+  /// **'BasKu'**
+  String get appName;
+
+  /// No description provided for @home.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get home;
 
   /// No description provided for @listForm.
   ///
@@ -236,11 +224,143 @@ abstract class AppLocalizations {
   /// **'Map Form'**
   String get mapForm;
 
+  /// No description provided for @from.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get from;
+
+  /// No description provided for @to.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get to;
+
   /// No description provided for @availableBuses.
   ///
   /// In en, this message translates to:
   /// **'Available Buses'**
   String get availableBuses;
+
+  /// No description provided for @available.
+  ///
+  /// In en, this message translates to:
+  /// **'Available'**
+  String get available;
+
+  /// No description provided for @fareEstimator.
+  ///
+  /// In en, this message translates to:
+  /// **'Fare Estimator'**
+  String get fareEstimator;
+
+  /// No description provided for @totalFare.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Fare'**
+  String get totalFare;
+
+  /// No description provided for @back.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
+  /// No description provided for @viewBus.
+  ///
+  /// In en, this message translates to:
+  /// **'View Bus'**
+  String get viewBus;
+
+  /// No description provided for @busRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Bus Route'**
+  String get busRoute;
+
+  /// No description provided for @nextBus.
+  ///
+  /// In en, this message translates to:
+  /// **'Next Bus'**
+  String get nextBus;
+
+  /// No description provided for @viewMap.
+  ///
+  /// In en, this message translates to:
+  /// **'View Map'**
+  String get viewMap;
+
+  /// No description provided for @arrived.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrived'**
+  String get arrived;
+
+  /// No description provided for @passed.
+  ///
+  /// In en, this message translates to:
+  /// **'Passed'**
+  String get passed;
+
+  /// No description provided for @upcoming.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming'**
+  String get upcoming;
+
+  /// No description provided for @noInternetConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'No Internet Connection'**
+  String get noInternetConnection;
+
+  /// No description provided for @offlineViewMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Please check your connection or continue with offline view.'**
+  String get offlineViewMessage;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @viewOfflineMap.
+  ///
+  /// In en, this message translates to:
+  /// **'View Offline System Map'**
+  String get viewOfflineMap;
+
+  /// No description provided for @offlineMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline Map'**
+  String get offlineMap;
+
+  /// No description provided for @offlineSystemMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline System Map'**
+  String get offlineSystemMap;
+
+  /// No description provided for @offlineBusSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline Bus Schedule'**
+  String get offlineBusSchedule;
+
+  /// No description provided for @adults.
+  ///
+  /// In en, this message translates to:
+  /// **'Adults'**
+  String get adults;
+
+  /// No description provided for @childrenSeniors.
+  ///
+  /// In en, this message translates to:
+  /// **'Children / Seniors'**
+  String get childrenSeniors;
 }
 
 class _AppLocalizationsDelegate

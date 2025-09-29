@@ -15,10 +15,10 @@ enum _PanelMode { none, list, detail }
 
 class _HomePageState extends State<Home> {
   final _mapKey = GlobalKey<MapPageState>();
-  int _index = 1;
+  final int _index = 1;
   String? _fromStop, _toStop;
-  _PanelMode _panel = _PanelMode.none;
-  int _selectedBusIndex = 0;
+  final _PanelMode _panel = _PanelMode.none;
+  final int _selectedBusIndex = 0;
 
   static const Color kBlue = Color(0xFF103A74);
   static const Color kBlueLight = Color(0xFF1C6BE3);
@@ -214,9 +214,6 @@ class _DockSearchBar extends StatelessWidget {
     );
   }
 }
-
-
-
 
 /// Bus List Panel
 class _BusListPanel extends StatelessWidget {

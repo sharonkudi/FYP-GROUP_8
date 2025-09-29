@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'homepage-mapform.dart';
+import 'package:bus_app/l10n/app_localizations.dart';
 
 class BusRoutePage extends StatefulWidget {
   final String busId;
@@ -105,10 +106,12 @@ class _BusRoutePageState extends State<BusRoutePage>
   Future<void> fetchNextBus() async {
     // Example stop coordinates; adapt as needed
     final stopCoordinates = {
-      "The Mall Gadong": BusStop(
-          name: "The Mall Gadong", lat: 4.905010, lng: 114.919227),
+      "The Mall Gadong":
+          BusStop(name: "The Mall Gadong", lat: 4.905010, lng: 114.919227),
       "Yayasan Complex": BusStop(
-          name: "Yayasan Complex", lat: 4.888581361818439, lng: 114.94048600605531),
+          name: "Yayasan Complex",
+          lat: 4.888581361818439,
+          lng: 114.94048600605531),
       "Kianggeh": BusStop(
           name: "Kianggeh", lat: 4.8892108308087385, lng: 114.94433682090414),
       "Ong Sum Ping": BusStop(
@@ -116,7 +119,9 @@ class _BusRoutePageState extends State<BusRoutePage>
       "PB School": BusStop(
           name: "PB School", lat: 4.904922563115028, lng: 114.9332865430959),
       "Ministry of Finance": BusStop(
-          name: "Ministry of Finance", lat: 4.915056711681162, lng: 114.95226715214645),
+          name: "Ministry of Finance",
+          lat: 4.915056711681162,
+          lng: 114.95226715214645),
     };
 
     final snapshot = await FirebaseFirestore.instance
@@ -132,7 +137,8 @@ class _BusRoutePageState extends State<BusRoutePage>
         nextBusName = busData['bus_name'];
         nextBusStops = (busData['route'] as String)
             .split(',')
-            .map((name) => stopCoordinates[name.trim()] ??
+            .map((name) =>
+                stopCoordinates[name.trim()] ??
                 BusStop(name: name.trim(), lat: 0, lng: 0))
             .toList();
       });
@@ -147,7 +153,8 @@ class _BusRoutePageState extends State<BusRoutePage>
     super.dispose();
   }
 
-  double _calculateDistance(double lat1, double lng1, double lat2, double lng2) {
+  double _calculateDistance(
+      double lat1, double lng1, double lat2, double lng2) {
     return Geolocator.distanceBetween(lat1, lng1, lat2, lng2);
   }
 
@@ -159,11 +166,12 @@ class _BusRoutePageState extends State<BusRoutePage>
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          "Bus Route",
+        title: Text(
+          loc.busRoute,
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.white,
@@ -184,7 +192,8 @@ class _BusRoutePageState extends State<BusRoutePage>
               final data = snapshot.data!;
               busLat = (data['latitude'] ?? 0).toDouble();
               busLng = (data['longitude'] ?? 0).toDouble();
-              busSpeed = ((data['speed'] ?? 0).toDouble()) * 3.6; // convert m/s → km/h
+              busSpeed =
+                  ((data['speed'] ?? 0).toDouble()) * 3.6; // convert m/s → km/h
             }
 
             return ListView(
@@ -193,7 +202,8 @@ class _BusRoutePageState extends State<BusRoutePage>
                 ...widget.stops.asMap().entries.map((entry) {
                   int index = entry.key;
                   BusStop stop = entry.value;
-                  return buildStopRow(stop, index, busLat, busLng, busSpeed, widget.stops);
+                  return buildStopRow(
+                      stop, index, busLat, busLng, busSpeed, widget.stops);
                 }).toList(),
 
                 // ExpansionTile for next bus if available
@@ -201,8 +211,9 @@ class _BusRoutePageState extends State<BusRoutePage>
                 if (nextBusStops != null)
                   ExpansionTile(
                     title: Text(
-                      nextBusName ?? 'Next Bus',
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
+                      nextBusName ?? loc.nextBus,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.orange),
                     ),
                     children: [
                       StreamBuilder<Map<String, dynamic>>(
@@ -217,11 +228,13 @@ class _BusRoutePageState extends State<BusRoutePage>
                             final data = altSnapshot.data!;
                             altBusLat = (data['latitude'] ?? 0).toDouble();
                             altBusLng = (data['longitude'] ?? 0).toDouble();
-                            altBusSpeed = ((data['speed'] ?? 0).toDouble()) * 3.6;
+                            altBusSpeed =
+                                ((data['speed'] ?? 0).toDouble()) * 3.6;
                           }
 
                           return Column(
-                            children: nextBusStops!.asMap().entries.map((entry) {
+                            children:
+                                nextBusStops!.asMap().entries.map((entry) {
                               int index = entry.key;
                               BusStop stop = entry.value;
                               return buildStopRow(
@@ -239,29 +252,31 @@ class _BusRoutePageState extends State<BusRoutePage>
                     ],
                   ),
 
-                  // View Map button
-    Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16.0),
-      child: ElevatedButton.icon(
-        onPressed: () {
-          // Navigate to homepage-mapform
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => HomePage(initialTab: 1), // 1 = Map Form tab
-            ),
-          );
-        },
-        icon: const Icon(Icons.map),
-        label: const Text("View Map"),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.orange,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-      ),
-    ),
+                // View Map button
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      // Navigate to homepage-mapform
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              HomePage(initialTab: 1), // 1 = Map Form tab
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.map),
+                    label: Text(loc.viewMap),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      textStyle: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
               ],
             );
           },
@@ -270,18 +285,20 @@ class _BusRoutePageState extends State<BusRoutePage>
     );
   }
 
-  Widget buildStopRow(BusStop stop, int index, double? busLat, double? busLng, double busSpeed, List<BusStop> stopsList) {
+  Widget buildStopRow(BusStop stop, int index, double? busLat, double? busLng,
+      double busSpeed, List<BusStop> stopsList) {
     String etaText = "--";
     bool isNearby = false;
     Color lineColor = Colors.grey[300]!;
 
     // Determine ETA
     if (busLat != null && busLng != null && busSpeed > 0) {
-      double distToStop = _calculateDistance(busLat, busLng, stop.lat, stop.lng);
+      double distToStop =
+          _calculateDistance(busLat, busLng, stop.lat, stop.lng);
 
       if (distToStop > 0) {
         int etaMinutes = _calculateETA(distToStop, speedKmh: busSpeed);
-        etaText = etaMinutes >= 0 ? "$etaMinutes min" : "--";
+        etaText = etaText = etaMinutes >= 0 ? "$etaMinutes min" : "--";
       } else {
         etaText = "0 min";
       }
@@ -298,37 +315,45 @@ class _BusRoutePageState extends State<BusRoutePage>
       // Line color gradient logic
       if (index != stopsList.length - 1) {
         final nextStop = stopsList[index + 1];
-        double segmentLength = _calculateDistance(stop.lat, stop.lng, nextStop.lat, nextStop.lng);
+        double segmentLength =
+            _calculateDistance(stop.lat, stop.lng, nextStop.lat, nextStop.lng);
         segmentLength = segmentLength == 0 ? 1 : segmentLength;
 
-        double distToNextStop = _calculateDistance(busLat, busLng, nextStop.lat, nextStop.lng);
+        double distToNextStop =
+            _calculateDistance(busLat, busLng, nextStop.lat, nextStop.lng);
         double segmentProgress =
-            ((segmentLength - distToNextStop).clamp(0, segmentLength)) / segmentLength;
-        lineColor = Color.lerp(Colors.grey[300], Colors.green, segmentProgress)!;
+            ((segmentLength - distToNextStop).clamp(0, segmentLength)) /
+                segmentLength;
+        lineColor =
+            Color.lerp(Colors.grey[300], Colors.green, segmentProgress)!;
       }
 
       final lastStop = stopsList.last;
-      double distToLast = _calculateDistance(busLat, busLng, lastStop.lat, lastStop.lng);
+      double distToLast =
+          _calculateDistance(busLat, busLng, lastStop.lat, lastStop.lng);
       if (distToLast <= 50) lineColor = Colors.grey[300]!;
     }
 
     // Determine status: Passed / Arrived / Upcoming
-    String status = "Upcoming";
+    String status = AppLocalizations.of(context)!.upcoming;
     if (busLat != null && busLng != null) {
-      double distanceToStop = _calculateDistance(busLat, busLng, stop.lat, stop.lng);
+      double distanceToStop =
+          _calculateDistance(busLat, busLng, stop.lat, stop.lng);
       if (distanceToStop <= 90) {
-        status = "Arrived";
+        status = AppLocalizations.of(context)!.arrived; // 👈 localized
       } else {
         // Check if bus has passed this stop (any previous stop within 10m)
         bool passed = false;
         for (int i = 0; i < index; i++) {
-          double distPrev = _calculateDistance(busLat, busLng, stopsList[i].lat, stopsList[i].lng);
+          double distPrev = _calculateDistance(
+              busLat, busLng, stopsList[i].lat, stopsList[i].lng);
           if (distPrev <= 10) {
             passed = true;
             break;
           }
         }
-        if (passed) status = "Passed";
+        if (passed)
+          status = AppLocalizations.of(context)!.passed; // 👈 localized
       }
     }
 
@@ -339,7 +364,9 @@ class _BusRoutePageState extends State<BusRoutePage>
         Column(
           children: [
             ScaleTransition(
-              scale: isNearby ? _pulseController : const AlwaysStoppedAnimation<double>(1.0),
+              scale: isNearby
+                  ? _pulseController
+                  : const AlwaysStoppedAnimation<double>(1.0),
               child: Container(
                 width: 14,
                 height: 14,
@@ -396,14 +423,16 @@ class _BusRoutePageState extends State<BusRoutePage>
                     // ETA box
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: Colors.grey[200],
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           "ETA: $etaText",
-                          style: const TextStyle(color: Colors.black87, fontSize: 13),
+                          style: const TextStyle(
+                              color: Colors.black87, fontSize: 13),
                         ),
                       ),
                     ),
@@ -412,7 +441,8 @@ class _BusRoutePageState extends State<BusRoutePage>
                     // Status box (no pulsating animation)
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: status == "Arrived"
                               ? Colors.green.withOpacity(0.2)
