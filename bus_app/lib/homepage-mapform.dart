@@ -64,7 +64,6 @@ class MapPageState extends State<MapFormPage> {
     });
   }
 
-  /// 🔹 Firestore: load metadata for buses
   void _listenFirestoreBuses() {
     _firestore.collection('buses').snapshots().listen((snap) {
       final info = <String, BusInfo>{};
@@ -84,7 +83,6 @@ class MapPageState extends State<MapFormPage> {
     });
   }
 
-  /// 🔹 RTDB: gpsData = BUS001, gpsData2 = BUS002
   void _listenRealtimeGps() {
     _rtdb.onValue.listen((event) {
       final value = event.snapshot.value;
@@ -134,7 +132,9 @@ class MapPageState extends State<MapFormPage> {
     final to = StopData.coords[_selectedToStop!]!;
 
     try {
-      final client = OpenRouteService(apiKey: 'PUT-YOUR-ORS-API-KEY');
+      final client = OpenRouteService(
+        apiKey: 'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjU4YzVjYzVkZWZiZDRlN2NhM2VhMDI5Mjg3NWViNmFhIiwiaCI6Im11cm11cjY0In0=', // Replace with real ORS API key
+      );
       final coords = await client.directionsRouteCoordsGet(
         startCoordinate: ORSCoordinate(
           latitude: from.latitude,
@@ -146,7 +146,8 @@ class MapPageState extends State<MapFormPage> {
         ),
       );
       setState(() {
-        _routePoints = coords.map((c) => LatLng(c.latitude, c.longitude)).toList();
+        _routePoints =
+            coords.map((c) => LatLng(c.latitude, c.longitude)).toList();
       });
     } catch (e) {
       debugPrint('Route error: $e');
@@ -156,6 +157,7 @@ class MapPageState extends State<MapFormPage> {
   @override
   Widget build(BuildContext context) {
     final busMarkers = <Marker>[];
+
     _busPositions.forEach((busId, pos) {
       final info = _busInfo[busId];
       busMarkers.add(Marker(
@@ -168,6 +170,16 @@ class MapPageState extends State<MapFormPage> {
         ),
       ));
     });
+
+    final stopMarkers = <Marker>[
+      for (int i = 0; i < StopData.names.length; i++)
+        Marker(
+          width: 44,
+          height: 44,
+          point: StopData.coords[StopData.names[i]]!,
+          child: _BlueStopMarker(number: i + 1),
+        ),
+    ];
 
     final deviceMarker = _devicePosition != null
         ? Marker(
@@ -200,6 +212,7 @@ class MapPageState extends State<MapFormPage> {
                 ),
                 MarkerLayer(
                   markers: [
+                    ...stopMarkers,
                     ...busMarkers,
                     if (deviceMarker != null) deviceMarker,
                   ],
@@ -318,4 +331,44 @@ class BusInfo {
     required this.schedule,
     required this.assignedTo,
   });
+}
+
+class _BlueStopMarker extends StatelessWidget {
+  final int number;
+  const _BlueStopMarker({required this.number});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: const BoxDecoration(
+            color: Color(0xFF1C6BE3),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.directions_bus, color: Colors.white, size: 20),
+        ),
+        Positioned(
+          bottom: -8,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              '$number',
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }

@@ -27,7 +27,7 @@ class _ListFormPageState extends State<ListFormPage>
   ];
 
   final List<Map<String, dynamic>> _allStops = [
-    {'name': 'The Mall Gadong', 'lat': 4.868942, 'lng': 114.903128}, // change to ur lat/lng here
+    {'name': 'The Mall Gadong', 'lat': 4.868942, 'lng': 114.903128},
     {'name': 'Yayasan Complex', 'lat': 4.90706, 'lng': 114.91618},
     {'name': 'Kianggeh', 'lat': 4.893884, 'lng': 114.944413},
     {'name': 'Ong Sum Ping', 'lat': 4.887325, 'lng': 114.942857},
@@ -218,10 +218,10 @@ class _ListFormPageState extends State<ListFormPage>
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    initialValue: selectedTo,
+                    value: selectedTo,  // Use `value` here instead of `initialValue`
                     isExpanded: true,
                     decoration: InputDecoration(
-                      labelText: loc.destination, // ✅ Localized
+                      labelText: loc.destination, // Localized
                       prefixIcon: const Icon(Icons.flag,
                           color: Color.fromARGB(255, 94, 105, 120)),
                       filled: true,
@@ -230,8 +230,7 @@ class _ListFormPageState extends State<ListFormPage>
                     items: locations
                         .map((locName) => DropdownMenuItem<String>(
                               value: locName,
-                              child: Text(locName,
-                                  overflow: TextOverflow.ellipsis),
+                              child: Text(locName, overflow: TextOverflow.ellipsis),
                             ))
                         .toList(),
                     onChanged: (val) {
@@ -258,7 +257,7 @@ class _ListFormPageState extends State<ListFormPage>
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(loc.selectDestination), // ✅ Localized
+                            content: Text(loc.selectDestination), // Localized
                           ),
                         );
                       }
@@ -276,7 +275,7 @@ class _ListFormPageState extends State<ListFormPage>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  loc.busStopsNearMe, // ✅ Localized
+                  loc.busStopsNearMe, // Localized
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -294,14 +293,13 @@ class _ListFormPageState extends State<ListFormPage>
                   ),
                   onPressed: () {
                     setState(() {
-                      _displayedStops =
-                          List<Map<String, dynamic>>.from(_allStops);
+                      _displayedStops = List<Map<String, dynamic>>.from(_allStops);
                       selectedFrom = null;
                       selectedTo = null;
                     });
                   },
                   child: Text(
-                    loc.viewAll, // ✅ Localized
+                    loc.viewAll, // Localized
                     style: const TextStyle(color: Colors.white),
                   ),
                 ),
@@ -364,7 +362,7 @@ class BusStopCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final loc = AppLocalizations.of(context)!; // ✅ Localized
+    final loc = AppLocalizations.of(context)!;
 
     return Card(
       color: Colors.white,
@@ -378,7 +376,7 @@ class BusStopCard extends StatelessWidget {
             backgroundColor:
                 onView == null ? Colors.grey : const Color(0xFF103A74),
           ),
-          child: Text(loc.view), // ✅ Localized
+          child: Text(loc.view),
         ),
       ),
     );
