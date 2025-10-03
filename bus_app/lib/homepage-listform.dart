@@ -27,12 +27,12 @@ class _ListFormPageState extends State<ListFormPage>
   ];
 
   final List<Map<String, dynamic>> _allStops = [
-    {'name': 'The Mall Gadong', 'lat': 4.868942, 'lng': 114.903128},
-    {'name': 'Yayasan Complex', 'lat': 4.90706, 'lng': 114.91618},
-    {'name': 'Kianggeh', 'lat': 4.893884, 'lng': 114.944413},
-    {'name': 'Ong Sum Ping', 'lat': 4.887325, 'lng': 114.942857},
-    {'name': 'PB School', 'lat': 4.904819, 'lng': 114.933152},
-    {'name': 'Ministry of Finance', 'lat': 4.8892, 'lng': 114.9489},
+    {'name': 'The Mall Gadong', 'lat': 4.868942, 'lng': 114.903128}, // change to ur lat/lng here
+    {'name': 'Yayasan Complex', 'lat': 4.888581361818439, 'lng': 114.94048600605531},
+    {'name': 'Kianggeh', 'lat': 4.8892108308087385, 'lng': 114.94433682090414},
+    {'name': 'Ong Sum Ping', 'lat': 4.90414222577477, 'lng': 114.93627988813594},
+    {'name': 'PB School', 'lat': 4.904922563115028, 'lng': 114.9332865430959},
+    {'name': 'Ministry of Finance', 'lat': 4.915056711681162, 'lng': 114.95226715214645},
   ];
 
   final Map<String, List<String>> stopGroups = {
@@ -41,80 +41,110 @@ class _ListFormPageState extends State<ListFormPage>
   };
 
   late List<Map<String, dynamic>> _displayedStops;
-  Position? _userPosition;
-  StreamSubscription<Position>? _positionStream;
-  Timer? _locationTimer;
+Position? _userPosition;
+StreamSubscription<Position>? _positionStream;
+Timer? _locationTimer;
 
-  String? selectedFrom;
-  String? selectedTo;
-  bool _hasLocationPermission = false;
+String? selectedFrom;
+String? selectedTo;
+StreamSubscription<ServiceStatus>? _serviceStatusStream;
 
-  @override
-  void initState() {
-    super.initState();
-    _displayedStops = List<Map<String, dynamic>>.from(_allStops);
+bool _hasLocationPermission = false;
+bool _locationPopupShown = false; // ✅ unified flag to prevent multiple popups
 
-    _determinePosition();
+@override
+void initState() {
+  super.initState();
 
-    _positionStream = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 1,
-      ),
-    ).listen((position) {
-      if (mounted) {
-        setState(() {
-          _userPosition = position;
-        });
-      }
-    });
+  _displayedStops = List<Map<String, dynamic>>.from(_allStops);
 
-    _locationTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+  _initLocation();
+
+  // Stream for position updates
+  _positionStream = Geolocator.getPositionStream(
+    locationSettings: const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 1,
+    ),
+  ).listen((position) {
+    if (mounted) setState(() => _userPosition = position);
+  });
+
+  // Stream for service status changes
+  _serviceStatusStream = Geolocator.getServiceStatusStream().listen(
+    (status) async {
       if (!mounted) return;
 
-      if (_hasLocationPermission) {
-        final position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high);
-        if (mounted) {
-          setState(() {
-            _userPosition = position;
-          });
-        }
+      // Location service disabled
+      if (status == ServiceStatus.disabled && !_locationPopupShown) {
+        _locationPopupShown = true;
+
+        // Open system location settings
+        await Geolocator.openLocationSettings();
+
+        // Small delay to prevent rapid re-trigger
+        await Future.delayed(const Duration(seconds: 2));
+
+        _locationPopupShown = false;
       }
-    });
+    },
+  );
+
+  // Timer to periodically get position if permission is granted
+  _locationTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+    if (!mounted || !_hasLocationPermission) return;
+
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      if (mounted) setState(() => _userPosition = position);
+    } catch (_) {
+      // ignore errors (likely no permission)
+    }
+  });
+}
+
+// ✅ Unified method to initialize location permission & first position
+Future<void> _initLocation() async {
+  bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+  if (!serviceEnabled && !_locationPopupShown) {
+    _locationPopupShown = true;
+    await Geolocator.openLocationSettings();
+    await Future.delayed(const Duration(seconds: 2));
+    _locationPopupShown = false;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return; // user didn't enable, stop here
   }
 
-  Future<void> _determinePosition() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return;
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      return;
-    }
-
-    _hasLocationPermission = true;
-
-    final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-    if (mounted) {
-      setState(() {
-        _userPosition = position;
-      });
-    }
+  // Check permission
+  LocationPermission permission = await Geolocator.checkPermission();
+  if (permission == LocationPermission.denied) {
+    permission = await Geolocator.requestPermission();
   }
 
-  @override
-  void dispose() {
-    _positionStream?.cancel();
-    _locationTimer?.cancel();
-    super.dispose();
-  }
+  if (permission == LocationPermission.denied ||
+      permission == LocationPermission.deniedForever) return;
+
+  _hasLocationPermission = true;
+
+  // Get initial position
+  final position = await Geolocator.getCurrentPosition(
+    desiredAccuracy: LocationAccuracy.high,
+  );
+  if (mounted) setState(() => _userPosition = position);
+}
+
+@override
+void dispose() {
+  _positionStream?.cancel();
+  _serviceStatusStream?.cancel();
+  _locationTimer?.cancel();
+  super.dispose();
+}
+
 
   @override
   bool get wantKeepAlive => true;

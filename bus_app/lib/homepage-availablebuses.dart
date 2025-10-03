@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bus_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'homepage-busroute.dart';
@@ -425,6 +427,7 @@ class _BusDetailsSheetState extends State<BusDetailsSheet> {
   String? selectedFrom;
   String? selectedTo;
   String driverContact = "N/A";
+  StreamSubscription? _driverSub; 
 
   @override
   void initState() {
@@ -432,23 +435,70 @@ class _BusDetailsSheetState extends State<BusDetailsSheet> {
     _fetchDriverContact();
   }
 
-  Future<void> _fetchDriverContact() async {
-    final driverName = widget.bus['assignedTo'];
-    if (driverName != null && driverName.isNotEmpty) {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('drivers')
-          .where('name', isEqualTo: driverName)
-          .limit(1)
-          .get();
+  @override
+  void dispose() {
+    _driverSub?.cancel(); // 🔹 cancel stream when widget is destroyed
+    super.dispose();
+  }
 
+  void _fetchDriverContact() {
+    final driverName = widget.bus['assignedTo']?.toString().trim();
+
+    if (driverName == null || driverName.isEmpty) {
+      setState(() => driverContact = "Unassigned");
+      return;
+    }
+
+    // cancel old subscription before creating new one
+    _driverSub?.cancel();
+
+    _driverSub = FirebaseFirestore.instance
+        .collection('drivers')
+        .where('name', isEqualTo: driverName)
+        .limit(1)
+        .snapshots()
+        .listen((snapshot) {
       if (snapshot.docs.isNotEmpty) {
         final data = snapshot.docs.first.data();
         setState(() {
-          driverContact = data['contactNumber'] ?? "N/A";
+          driverContact = data['contactNumber']?.toString() ?? "N/A";
         });
+      } else {
+        setState(() => driverContact = "N/A");
       }
-    }
+    }, onError: (e) {
+      print("Error fetching driver contact: $e");
+      setState(() => driverContact = "N/A");
+    });
   }
+
+Future<List<BusStop>> fetchBusStops(String busId) async {
+  try {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('buses')
+        .where('bus_id', isEqualTo: busId)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isEmpty) return [];
+
+    final data = snapshot.docs.first.data();
+    final stopsList = (data['Stops'] as List<dynamic>? ?? []).map((stopMap) {
+      final map = Map<String, dynamic>.from(stopMap);
+      return BusStop(
+        name: map['name'] ?? 'Unknown',
+        lat: (map['lat'] ?? 0).toDouble(),
+        lng: (map['lng'] ?? 0).toDouble(),
+        departIn: map['time'],
+      );
+    }).toList();
+
+    return stopsList;
+  } catch (e) {
+    print("Error fetching bus stops: $e");
+    return [];
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -606,46 +656,15 @@ class _BusDetailsSheetState extends State<BusDetailsSheet> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          onPressed: () {
-                            final Map<String, BusStop> stopCoordinates = {
-                              "The Mall Gadong": BusStop(
-                                  name: "The Mall Gadong",
-                                  lat: 4.905010,
-                                  lng: 114.919227),
-                              "Yayasan Complex": BusStop(
-                                  name: "Yayasan Complex",
-                                  lat: 4.888581361818439,
-                                  lng: 114.94048600605531),
-                              "Kianggeh": BusStop(
-                                  name: "Kianggeh",
-                                  lat: 4.8892108308087385,
-                                  lng: 114.94433682090414),
-                              "Ong Sum Ping": BusStop(
-                                  name: "Ong Sum Ping",
-                                  lat: 4.90414222577477,
-                                  lng: 114.93627988813594),
-                              "PB School": BusStop(
-                                  name: "PB School",
-                                  lat: 4.904922563115028,
-                                  lng: 114.9332865430959),
-                              "Ministry of Finance": BusStop(
-                                  name: "Ministry of Finance",
-                                  lat: 4.915056711681162,
-                                  lng: 114.95226715214645),
-                            };
+                          onPressed: () async {
+                            final stopsList =
+                                await fetchBusStops(widget.bus['id'] ?? 'UnknownBus');
 
-                            List<BusStop> stopsList = [];
-                            if (widget.bus['route'] != null &&
-                                widget.bus['route'] is String) {
-                              stopsList = (widget.bus['route'] as String)
-                                  .split(',')
-                                  .map((name) =>
-                                      stopCoordinates[name.trim()] ??
-                                      BusStop(
-                                          name: name.trim(),
-                                          lat: 0.0,
-                                          lng: 0.0))
-                                  .toList();
+                            if (stopsList.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Stops not found for this bus")),
+                              );
+                              return;
                             }
 
                             Navigator.push(
@@ -654,58 +673,54 @@ class _BusDetailsSheetState extends State<BusDetailsSheet> {
                                 builder: (context) => BusRoutePage(
                                   busId: widget.bus['id'] ?? 'UnknownBus',
                                   stops: stopsList,
-                                  gpsRef: widget.bus['id'] == 'BUS002'
-                                      ? 'gpsData2'
-                                      : 'gpsData',
-                                  onTransit: () {
-                                    final nextBusDoc = FirebaseFirestore
-                                        .instance
+                                  gpsRef:
+                                      widget.bus['id'] == 'BUS002' ? 'gpsData2' : 'gpsData',
+                                  onTransit: () async {
+                                    // fetch next bus dynamically
+                                    final nextBusSnapshot = await FirebaseFirestore.instance
                                         .collection('buses')
-                                        .where('bus_id',
-                                            isNotEqualTo: widget.bus['id'])
-                                        .limit(1);
+                                        .where('bus_id', isNotEqualTo: widget.bus['id'])
+                                        .limit(1)
+                                        .get();
 
-                                    nextBusDoc.get().then((snapshot) {
-                                      if (snapshot.docs.isNotEmpty) {
-                                        final nextBus =
-                                            snapshot.docs.first.data();
-                                        List<BusStop> nextStopsList = (nextBus[
-                                                'route'] as String)
-                                            .split(',')
-                                            .map((name) =>
-                                                stopCoordinates[name.trim()] ??
-                                                BusStop(
-                                                    name: name.trim(),
-                                                    lat: 0,
-                                                    lng: 0))
-                                            .toList();
+                                    if (nextBusSnapshot.docs.isNotEmpty) {
+                                      final nextBus = nextBusSnapshot.docs.first.data();
+                                      final nextStops =
+                                          (nextBus['Stops'] as List<dynamic>? ?? [])
+                                              .map((map) => BusStop(
+                                                    name: map['name'] ?? 'Unknown',
+                                                    lat: (map['lat'] ?? 0).toDouble(),
+                                                    lng: (map['lng'] ?? 0).toDouble(),
+                                                    departIn: map['time'],
+                                                  ))
+                                              .toList();
 
-                                        Navigator.pushReplacement(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => BusRoutePage(
-                                              busId: nextBus['bus_id'] ??
-                                                  'UnknownBus',
-                                              stops: nextStopsList,
-                                              gpsRef:
-                                                  nextBus['bus_id'] == 'BUS002'
-                                                      ? 'gpsData2'
-                                                      : 'gpsData',
-                                              onTransit: null,
-                                            ),
+                                      Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => BusRoutePage(
+                                            busId: nextBus['bus_id'] ?? 'UnknownBus',
+                                            stops: nextStops,
+                                            gpsRef: nextBus['bus_id'] == 'BUS002'
+                                                ? 'gpsData2'
+                                                : 'gpsData',
+                                            onTransit: null,
                                           ),
-                                        );
-                                      }
-                                    });
+                                        ),
+                                      );
+                                    }
                                   },
                                 ),
                               ),
                             );
                           },
-                          child: Text(loc.viewBus,
-                              style: const TextStyle(fontSize: 16)),
+                          child: Text(
+                            loc.viewBus,
+                            style: const TextStyle(fontSize: 16),
+                          ),
                         ),
                       ),
+
                     ],
                   ),
                 ),

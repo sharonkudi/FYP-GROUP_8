@@ -10,7 +10,8 @@ import 'data/stops.dart';
 import 'package:bus_app/l10n/app_localizations.dart';
 
 class MapFormPage extends StatefulWidget {
-  const MapFormPage({super.key});
+  final String? focusBusId; // optional bus to focus
+  const MapFormPage({super.key, this.focusBusId});
 
   @override
   MapPageState createState() => MapPageState();
@@ -285,35 +286,228 @@ class MapPageState extends State<MapFormPage> {
     );
   }
 
-  void _showBusDetails(
-      BuildContext context, String busId, BusInfo? info, LatLng pos) {
-    showModalBottomSheet(
-      context: context,
-      builder: (_) {
-        return Padding(
-          padding: const EdgeInsets.all(16),
-          child: info == null
-              ? Text("Bus $busId\nLive: ${pos.latitude}, ${pos.longitude}")
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(info.name,
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
-                    Text("Bus ID: ${info.busId}"),
-                    Text("Driver: ${info.assignedTo}"),
-                    Text("Route: ${info.route}"),
-                    Text("Time: ${info.schedule}"),
-                    Text(
-                        "Live: ${pos.latitude.toStringAsFixed(5)}, ${pos.longitude.toStringAsFixed(5)}"),
-                  ],
+  void _showBusDetails(BuildContext context, String busId, BusInfo? info, LatLng pos) {
+  // Listen Firestore for this specific bus document
+  final Stream<BusInfo?> busStream = _firestore
+      .collection('buses')
+      .doc(busId.toLowerCase()) // assuming docId matches busId in lowercase
+      .snapshots()
+      .map((snapshot) {
+    if (!snapshot.exists || snapshot.data() == null) return null;
+    final data = snapshot.data()!;
+    return BusInfo(
+      docId: snapshot.id,
+      busId: data['bus_id']?.toString() ?? busId,
+      name: data['bus_name']?.toString() ?? 'Bus $busId',
+      route: data['route']?.toString() ?? '',
+      schedule: data['time']?.toString() ?? '',
+      assignedTo: data['assignedTo']?.toString() ?? '',
+    );
+  });
+
+  showModalBottomSheet(
+    context: context,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    backgroundColor: Colors.white,
+    isScrollControlled: true,
+    builder: (_) {
+      return Padding(
+        padding: EdgeInsets.only(
+          top: 24,
+          left: 16,
+          right: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: StreamBuilder<BusInfo?>(
+          stream: busStream,
+          builder: (context, snapshot) {
+            final currentInfo = snapshot.data ?? info;
+            return _BusInfoContent(busId: busId, info: currentInfo, pos: pos);
+          },
+        ),
+      );
+    },
+  );
+}
+
+
+}
+
+class _BusInfoContent extends StatelessWidget {
+  final String busId;
+  final BusInfo? info;
+  final LatLng pos;
+
+  const _BusInfoContent({
+    Key? key,
+    required this.busId,
+    required this.info,
+    required this.pos,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    if (info == null) {
+      // Minimal info view
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.directions_bus, size: 40, color: Colors.red),
+          const SizedBox(height: 12),
+          Text("Bus $busId",
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text(
+              "Live: ${pos.latitude.toStringAsFixed(5)}, ${pos.longitude.toStringAsFixed(5)}",
+              style: const TextStyle(fontSize: 16)),
+          const SizedBox(height: 16),
+          const Text("No additional information available.",
+              style: TextStyle(color: Colors.grey)),
+          const SizedBox(height: 20),
+          Center(
+            child: ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+              ),
+              child: const Text("Close", style: TextStyle(fontSize: 16)),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Full info view
+    final routeStops = info!.route.split(" > ");
+
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(info!.name,
+                    style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue)),
+                Text("Bus No: ${info!.busId}",
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, color: Colors.black87)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Route
+            Row(
+              children: [
+                const Icon(Icons.route, size: 16, color: Colors.grey),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(info!.route,
+                      style:
+                          const TextStyle(fontSize: 14, color: Colors.black87)),
                 ),
-        );
-      },
+              ],
+            ),
+            const Divider(height: 20, thickness: 0.6),
+            // Schedule
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: _buildScheduleList(info!.schedule),
+            ),
+            const Divider(height: 20, thickness: 0.6),
+            // Driver info
+            Row(
+              children: [
+                const Icon(Icons.person, size: 16, color: Colors.grey),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    info!.assignedTo.isNotEmpty
+                        ? "Driver: ${info!.assignedTo}"
+                        : "Driver: Unassigned",
+                    style: const TextStyle(fontSize: 14, color: Colors.black54),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.my_location, size: 16, color: Colors.grey),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    "Live: ${pos.latitude.toStringAsFixed(5)}, ${pos.longitude.toStringAsFixed(5)}",
+                    style: const TextStyle(fontSize: 14, color: Colors.black54),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Buttons
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey[300],
+                  foregroundColor: Colors.black,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Back", style: TextStyle(fontSize: 16)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
+
+  List<Widget> _buildScheduleList(String scheduleStr) {
+    if (scheduleStr.isEmpty) return [];
+    final schedule = scheduleStr
+        .split(RegExp(r'\.\s*'))
+        .map((t) => t.trim())
+        .where((t) => t.isNotEmpty)
+        .toList();
+    return [
+      const Text("Schedule:",
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+      const SizedBox(height: 6),
+      ...schedule.map(
+        (entry) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(
+            children: [
+              const Icon(Icons.access_time, size: 16, color: Colors.green),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(entry,
+                    style:
+                        const TextStyle(fontSize: 14, color: Colors.black87)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ];
+  }
 }
+
 
 class BusInfo {
   final String docId;
