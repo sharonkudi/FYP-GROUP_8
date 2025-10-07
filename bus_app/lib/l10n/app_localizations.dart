@@ -361,6 +361,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Children / Seniors'**
   String get childrenSeniors;
+
+  /// No description provided for @schedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule'**
+  String get schedule;
+
+  /// No description provided for @features.
+  ///
+  /// In en, this message translates to:
+  /// **'Features'**
+  String get features;
+
+  /// No description provided for @duration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get duration;
+
+  /// No description provided for @driver.
+  ///
+  /// In en, this message translates to:
+  /// **'Driver'**
+  String get driver;
+
+  /// No description provided for @busNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Bus No'**
+  String get busNumber;
+
+  /// No description provided for @unassigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Unassigned'**
+  String get unassigned;
+
+  /// No description provided for @takeBusAToKianggeh.
+  ///
+  /// In en, this message translates to:
+  /// **'Take Bus A to Kianggeh'**
+  String get takeBusAToKianggeh;
+
+  /// No description provided for @arriveAtKianggehAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrive at Kianggeh at'**
+  String get arriveAtKianggehAt;
+
+  /// No description provided for @transferToBusBAtKianggeh.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer to Bus B at Kianggeh'**
+  String get transferToBusBAtKianggeh;
+
+  /// No description provided for @continueToYayasanOrMoF.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue to Yayasan Complex or Ministry of Finance'**
+  String get continueToYayasanOrMoF;
+
+  /// No description provided for @takeBusBToKianggeh.
+  ///
+  /// In en, this message translates to:
+  /// **'Take Bus B to Kianggeh'**
+  String get takeBusBToKianggeh;
+
+  /// No description provided for @transferToBusAAtTheMall.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer to Bus A at The Mall Gadong'**
+  String get transferToBusAAtTheMall;
+
+  /// No description provided for @continueToPBSchoolOrMall.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue to PB School, Ong Sum Ping, or loop at The Mall Gadong'**
+  String get continueToPBSchoolOrMall;
+
+  /// No description provided for @transitInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Transit Info'**
+  String get transitInfo;
+
+  /// No description provided for @busPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Bus'**
+  String get busPrefix;
+
+  /// No description provided for @wifi.
+  ///
+  /// In en, this message translates to:
+  /// **'Wi-Fi'**
+  String get wifi;
+
+  /// No description provided for @aircond.
+  ///
+  /// In en, this message translates to:
+  /// **'Air Conditioning'**
+  String get aircond;
+
+  /// No description provided for @wheelchairLifts.
+  ///
+  /// In en, this message translates to:
+  /// **'Wheelchair Lifts'**
+  String get wheelchairLifts;
+
+  /// No description provided for @wheelchairSpace.
+  ///
+  /// In en, this message translates to:
+  /// **'Wheelchair Space'**
+  String get wheelchairSpace;
+
+  /// No description provided for @duration_5_10.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated 5–10 minutes for each stop'**
+  String get duration_5_10;
+
+  /// No description provided for @duration_5_15.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated 5–15 minutes for each stop'**
+  String get duration_5_15;
+
+  /// No description provided for @duration_10_15.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated 10–15 minutes for each stop'**
+  String get duration_10_15;
+
+  /// No description provided for @duration_10_20.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated 10–20 minutes for each stop'**
+  String get duration_10_20;
 }
 
 class _AppLocalizationsDelegate

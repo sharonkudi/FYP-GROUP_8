@@ -1,13 +1,12 @@
 import 'dart:async';
-
 import 'package:bus_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'homepage-busroute.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class AvailableBusesPage extends StatefulWidget {
   final String busStopName;
-
   const AvailableBusesPage({super.key, required this.busStopName});
 
   @override
@@ -21,23 +20,65 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
   }
 
   final Set<String> _selectedFareBusIds = {};
-
-  // NEW: Passenger counts
   int _adultCount = 0;
   int _childCount = 0;
 
-  // UPDATED: Fare calculation (adult = $1.00, child/senior = $0.50)
-  double get totalFare {
-    final perBusFare = (_adultCount * 1.0) + (_childCount * 0.5);
-    return perBusFare * _selectedFareBusIds.length;
+  double get totalFare =>
+      ((_adultCount * 1.0) + (_childCount * 0.5)) * _selectedFareBusIds.length;
+
+  String fareBreakdown(AppLocalizations loc) {
+    if (_selectedFareBusIds.isEmpty || (_adultCount == 0 && _childCount == 0))
+      return "";
+    return "($_adultCount ${loc.adults} + $_childCount ${loc.childrenSeniors}) × ${_selectedFareBusIds.length} bus(es)";
   }
 
-  // Helper to produce breakdown text using localization (pass loc from build)
-  String fareBreakdown(AppLocalizations loc) {
-    if (_selectedFareBusIds.isEmpty || (_adultCount == 0 && _childCount == 0)) {
-      return "";
+  String _formatTime(String time24h) {
+    try {
+      final t = DateFormat("HH:mm").parse(time24h);
+      return DateFormat("h:mm a").format(t);
+    } catch (_) {
+      return time24h;
     }
-    return "($_adultCount ${loc.adults} + $_childCount ${loc.childrenSeniors}) × ${_selectedFareBusIds.length} bus(es)";
+  }
+
+  // 🔹 Localization helpers
+  String localizeBusName(BuildContext context, String busName) {
+    final loc = AppLocalizations.of(context)!;
+    if (busName.toLowerCase().startsWith('bus ')) {
+      return '${loc.busPrefix} ${busName.substring(4)}';
+    }
+    return busName;
+  }
+
+  String localizeFeature(BuildContext context, String feature) {
+    final loc = AppLocalizations.of(context)!;
+    final clean =
+        feature.toLowerCase().replaceAll(RegExp(r'[-_\s]'), '').trim();
+    switch (clean) {
+      case 'wifi':
+      case 'wi-fi':
+        return loc.wifi;
+      case 'aircond':
+      case 'aircon':
+      case 'ac':
+        return loc.aircond;
+      case 'wheelchairlifts':
+        return loc.wheelchairLifts;
+      case 'wheelchairspace':
+        return loc.wheelchairSpace;
+      default:
+        return feature;
+    }
+  }
+
+  String localizeDuration(BuildContext context, String duration) {
+    final loc = AppLocalizations.of(context)!;
+    final lower = duration.toLowerCase();
+    if (lower.contains('5-10')) return loc.duration_5_10;
+    if (lower.contains('5-15')) return loc.duration_5_15;
+    if (lower.contains('10-15')) return loc.duration_10_15;
+    if (lower.contains('10-20')) return loc.duration_10_20;
+    return duration;
   }
 
   @override
@@ -46,21 +87,19 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          loc.availableBuses,
-          style: TextStyle(color: Colors.white),
-        ),
+        title: Text(loc.availableBuses,
+            style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF103A74),
-        iconTheme: const IconThemeData(
-          color: Colors.white,
-        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Column(
         children: [
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream:
-                  FirebaseFirestore.instance.collection('buses').snapshots(),
+              stream: FirebaseFirestore.instance
+                  .collection('buses')
+                  .orderBy('bus_id')
+                  .snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -68,15 +107,29 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
 
                 final buses = snapshot.data!.docs.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
+                  final stops = (data['stops'] as List<dynamic>? ?? [])
+                      .map((s) => Map<String, dynamic>.from(s))
+                      .toList();
+
+                  final routeNames =
+                      stops.map((s) => s['name'] ?? '').join(' - ');
+                  final scheduleStr = stops
+                      .map((s) =>
+                          "${s['name']} (${_formatTime(s['time'] ?? 'N/A')})")
+                      .join(". ");
+
+                  final features =
+                      (data['features'] as List<dynamic>? ?? []).cast<String>();
+
                   return {
                     'docId': doc.id,
                     'id': data['bus_id'] ?? doc.id,
                     'name': data['bus_name'] ?? 'Unknown Bus',
-                    'time': data['time'] ?? 'N/A',
-                    'route': data['route'] ?? 'N/A',
+                    'route': routeNames.isNotEmpty ? routeNames : 'N/A',
+                    'time': scheduleStr,
                     'duration': data['duration'] ?? 'N/A',
                     'assignedTo': data['assignedTo'] ?? '',
-                    'features': [],
+                    'features': features,
                   };
                 }).toList();
 
@@ -118,7 +171,7 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        bus['name'],
+                                        localizeBusName(context, bus['name']),
                                         style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 20,
@@ -133,12 +186,10 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
                                         color: Colors.green[100],
                                         borderRadius: BorderRadius.circular(12),
                                       ),
-                                      child: Text(
-                                        loc.available,
-                                        style: TextStyle(
-                                            color: Colors.green,
-                                            fontWeight: FontWeight.w600),
-                                      ),
+                                      child: Text(loc.available,
+                                          style: const TextStyle(
+                                              color: Colors.green,
+                                              fontWeight: FontWeight.w600)),
                                     ),
                                   ],
                                 ),
@@ -149,13 +200,11 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
                                         size: 16, color: Colors.grey[600]),
                                     const SizedBox(width: 4),
                                     Expanded(
-                                      child: Text(
-                                        bus['time'],
-                                        style: TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.grey[700]),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
+                                      child: Text(bus['time'],
+                                          style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey[700]),
+                                          overflow: TextOverflow.ellipsis),
                                     ),
                                   ],
                                 ),
@@ -166,16 +215,34 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
                                         size: 16, color: Colors.grey[600]),
                                     const SizedBox(width: 4),
                                     Expanded(
-                                      child: Text(
-                                        bus['route'],
-                                        style: TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.grey[600]),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
+                                      child: Text(bus['route'],
+                                          style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey[600]),
+                                          overflow: TextOverflow.ellipsis),
                                     ),
                                   ],
                                 ),
+                                if (bus['features'] != null &&
+                                    (bus['features'] as List).isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: Wrap(
+                                      spacing: 6,
+                                      runSpacing: 4,
+                                      children: (bus['features'] as List)
+                                          .map<Widget>((f) => Chip(
+                                                label: Text(localizeFeature(
+                                                    context, f.toString())),
+                                                backgroundColor:
+                                                    Colors.blue.shade50,
+                                                labelStyle: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.blue),
+                                              ))
+                                          .toList(),
+                                    ),
+                                  ),
                                 const SizedBox(height: 10),
                                 Row(
                                   children: [
@@ -187,13 +254,13 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
-                                        bus['duration'],
+                                        localizeDuration(
+                                            context, bus['duration']),
                                         style: const TextStyle(
                                             fontSize: 13, color: Colors.blue),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
                                   ],
                                 ),
                               ],
@@ -207,10 +274,7 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
               },
             ),
           ),
-
-          // -----------------------------------------------------
-          // Fare Estimator Card (fixed at bottom)
-          // -----------------------------------------------------
+          // --- Fare estimator section (unchanged) ---
           Card(
             margin: const EdgeInsets.all(16),
             shape:
@@ -219,8 +283,10 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: StreamBuilder<QuerySnapshot>(
-                stream:
-                    FirebaseFirestore.instance.collection('buses').snapshots(),
+                stream: FirebaseFirestore.instance
+                    .collection('buses')
+                    .orderBy('bus_id')
+                    .snapshots(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return const SizedBox(
@@ -239,15 +305,10 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
                   }).toList();
 
                   return ExpansionTile(
-                    title: Text(
-                      loc.fareEstimator,
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-
-                    // ====== START: added dropdowns + breakdown (kept inside existing children) ======
+                    title: Text(loc.fareEstimator,
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold)),
                     children: [
-                      // Passenger dropdowns (Adults & Children/Seniors)
                       Padding(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
@@ -260,17 +321,12 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
                                 Text(loc.adults),
                                 DropdownButton<int>(
                                   value: _adultCount,
-                                  items: List.generate(11, (i) => i) // 0–10
-                                      .map((count) => DropdownMenuItem(
-                                            value: count,
-                                            child: Text(count.toString()),
-                                          ))
+                                  items: List.generate(11, (i) => i)
+                                      .map((i) => DropdownMenuItem(
+                                          value: i, child: Text(i.toString())))
                                       .toList(),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _adultCount = value ?? 0;
-                                    });
-                                  },
+                                  onChanged: (v) =>
+                                      setState(() => _adultCount = v ?? 0),
                                 ),
                               ],
                             ),
@@ -280,25 +336,18 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
                                 Text(loc.childrenSeniors),
                                 DropdownButton<int>(
                                   value: _childCount,
-                                  items: List.generate(11, (i) => i) // 0–10
-                                      .map((count) => DropdownMenuItem(
-                                            value: count,
-                                            child: Text(count.toString()),
-                                          ))
+                                  items: List.generate(11, (i) => i)
+                                      .map((i) => DropdownMenuItem(
+                                          value: i, child: Text(i.toString())))
                                       .toList(),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _childCount = value ?? 0;
-                                    });
-                                  },
+                                  onChanged: (v) =>
+                                      setState(() => _childCount = v ?? 0),
                                 ),
                               ],
                             ),
                           ],
                         ),
                       ),
-
-                      // Bus selection checkboxes (your original code)
                       Column(
                         children: buses.map((bus) {
                           final busId = bus['id']?.toString() ?? bus['docId'];
@@ -308,13 +357,12 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
                             children: [
                               Checkbox(
                                 value: isSelected,
-                                onChanged: (bool? value) {
+                                onChanged: (v) {
                                   setState(() {
-                                    if (value == true) {
+                                    if (v == true)
                                       _selectedFareBusIds.add(busId);
-                                    } else {
+                                    else
                                       _selectedFareBusIds.remove(busId);
-                                    }
                                   });
                                 },
                               ),
@@ -322,11 +370,10 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
                                 child: GestureDetector(
                                   onTap: () {
                                     setState(() {
-                                      if (isSelected) {
+                                      if (isSelected)
                                         _selectedFareBusIds.remove(busId);
-                                      } else {
+                                      else
                                         _selectedFareBusIds.add(busId);
-                                      }
                                     });
                                   },
                                   child: Container(
@@ -340,13 +387,13 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
                                           : Colors.grey.shade100,
                                       borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
-                                        color: isSelected
-                                            ? Colors.blue
-                                            : Colors.grey.shade300,
-                                      ),
+                                          color: isSelected
+                                              ? Colors.blue
+                                              : Colors.grey.shade300),
                                     ),
                                     child: Text(
-                                      bus['name'],
+                                      localizeBusName(
+                                          context, bus['name'].toString()),
                                       style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w500,
@@ -362,24 +409,16 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
                           );
                         }).toList(),
                       ),
-
                       const SizedBox(height: 11),
-
-                      // Fare breakdown (only shown when relevant)
                       if (fareBreakdown(loc).isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 6),
-                          child: Text(
-                            fareBreakdown(loc),
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontStyle: FontStyle.italic,
-                              color: Colors.black54,
-                            ),
-                          ),
+                          child: Text(fareBreakdown(loc),
+                              style: const TextStyle(
+                                  fontSize: 14,
+                                  fontStyle: FontStyle.italic,
+                                  color: Colors.black54)),
                         ),
-
-                      // Total fare (formatted to 2 decimals)
                       Align(
                         alignment: Alignment.centerRight,
                         child: Container(
@@ -391,15 +430,13 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
                           child: Text(
                             "${loc.totalFare}: \$${totalFare.toStringAsFixed(2)}",
                             style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87),
                           ),
                         ),
                       ),
                     ],
-                    // ====== END: added dropdowns + breakdown ======
                   );
                 },
               ),
@@ -411,12 +448,9 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
   }
 }
 
-// -------------------------
-// Bus details sheet (fixed with scroll)
-// -------------------------
+// --- bottom sheet for bus details ---
 class BusDetailsSheet extends StatefulWidget {
   final Map<String, dynamic> bus;
-
   const BusDetailsSheet({super.key, required this.bus});
 
   @override
@@ -427,7 +461,7 @@ class _BusDetailsSheetState extends State<BusDetailsSheet> {
   String? selectedFrom;
   String? selectedTo;
   String driverContact = "N/A";
-  StreamSubscription? _driverSub; 
+  StreamSubscription? _driverSub;
 
   @override
   void initState() {
@@ -437,7 +471,7 @@ class _BusDetailsSheetState extends State<BusDetailsSheet> {
 
   @override
   void dispose() {
-    _driverSub?.cancel(); // 🔹 cancel stream when widget is destroyed
+    _driverSub?.cancel();
     super.dispose();
   }
 
@@ -449,7 +483,6 @@ class _BusDetailsSheetState extends State<BusDetailsSheet> {
       return;
     }
 
-    // cancel old subscription before creating new one
     _driverSub?.cancel();
 
     _driverSub = FirebaseFirestore.instance
@@ -467,49 +500,68 @@ class _BusDetailsSheetState extends State<BusDetailsSheet> {
         setState(() => driverContact = "N/A");
       }
     }, onError: (e) {
-      print("Error fetching driver contact: $e");
       setState(() => driverContact = "N/A");
     });
   }
 
-Future<List<BusStop>> fetchBusStops(String busId) async {
-  try {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('buses')
-        .where('bus_id', isEqualTo: busId)
-        .limit(1)
-        .get();
+  Future<List<BusStop>> fetchBusStops(String busId) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('buses')
+          .where('bus_id', isEqualTo: busId)
+          .limit(1)
+          .get();
 
-    if (snapshot.docs.isEmpty) return [];
+      if (snapshot.docs.isEmpty) return [];
 
-    final data = snapshot.docs.first.data();
-    final stopsList = (data['Stops'] as List<dynamic>? ?? []).map((stopMap) {
-      final map = Map<String, dynamic>.from(stopMap);
-      return BusStop(
-        name: map['name'] ?? 'Unknown',
-        lat: (map['lat'] ?? 0).toDouble(),
-        lng: (map['lng'] ?? 0).toDouble(),
-        departIn: map['time'],
-      );
-    }).toList();
+      final data = snapshot.docs.first.data();
+      final stopsList = (data['stops'] as List<dynamic>? ?? []).map((stopMap) {
+        final map = Map<String, dynamic>.from(stopMap);
+        return BusStop(
+          name: map['name'] ?? 'Unknown',
+          lat: (map['lat'] ?? 0).toDouble(),
+          lng: (map['lng'] ?? 0).toDouble(),
+          departIn: map['time'],
+        );
+      }).toList();
 
-    return stopsList;
-  } catch (e) {
-    print("Error fetching bus stops: $e");
-    return [];
+      return stopsList;
+    } catch (e) {
+      return [];
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
 
-    List<String> stops = [];
-    if (widget.bus['route'] != null && widget.bus['route'] is String) {
-      stops = (widget.bus['route'] as String)
-          .split(',')
-          .map((s) => s.trim())
-          .toList();
+    // reuse localization functions
+    String localizeBusName(String name) {
+      if (name.toLowerCase().startsWith('bus ')) {
+        return '${loc.busPrefix} ${name.substring(4)}';
+      }
+      return name;
+    }
+
+    String localizeFeature(BuildContext context, String feature) {
+      final loc = AppLocalizations.of(context)!;
+      final clean =
+          feature.toLowerCase().replaceAll(RegExp(r'[-_\s]'), '').trim();
+      switch (clean) {
+        case 'wifi':
+        case 'wi-fi':
+          return loc.wifi;
+        case 'aircond':
+        case 'aircon':
+        case 'ac':
+          return loc.aircond;
+        case 'wheelchairlifts':
+          return loc.wheelchairLifts;
+        case 'wheelchairspace':
+          return loc.wheelchairSpace;
+        default:
+          return feature;
+      }
     }
 
     return FractionallySizedBox(
@@ -522,7 +574,6 @@ Future<List<BusStop>> fetchBusStops(String busId) async {
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: SingleChildScrollView(
-            // ✅ FIX: allow scrolling
             child: Column(
               children: [
                 Container(
@@ -534,8 +585,6 @@ Future<List<BusStop>> fetchBusStops(String busId) async {
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-
-                // Bus info card
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -556,7 +605,7 @@ Future<List<BusStop>> fetchBusStops(String busId) async {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            widget.bus['name'],
+                            localizeBusName(widget.bus['name']),
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -564,7 +613,7 @@ Future<List<BusStop>> fetchBusStops(String busId) async {
                             ),
                           ),
                           Text(
-                            "Bus No: ${widget.bus['id']}",
+                            "${loc.busNumber}: ${widget.bus['id']}",
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               color: Colors.black87,
@@ -591,7 +640,8 @@ Future<List<BusStop>> fetchBusStops(String busId) async {
                       const Divider(height: 20, thickness: 0.6),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: _buildScheduleList(widget.bus['time']),
+                        children:
+                            _buildScheduleList(context, widget.bus['time']),
                       ),
                       const Divider(height: 20, thickness: 0.6),
                       Row(
@@ -601,8 +651,8 @@ Future<List<BusStop>> fetchBusStops(String busId) async {
                           const SizedBox(width: 6),
                           Text(
                             widget.bus['assignedTo'].isNotEmpty
-                                ? "Driver: ${widget.bus['assignedTo']}"
-                                : "Driver: Unassigned",
+                                ? "${loc.driver}: ${widget.bus['assignedTo']}"
+                                : "${loc.driver}: ${loc.unassigned}",
                             style: const TextStyle(
                                 fontSize: 14, color: Colors.black54),
                           ),
@@ -620,11 +670,39 @@ Future<List<BusStop>> fetchBusStops(String busId) async {
                           ),
                         ],
                       ),
+
+                      // 🔹 Features in details
+                      if (widget.bus['features'] != null &&
+                          (widget.bus['features'] as List).isNotEmpty) ...[
+                        const Divider(height: 20, thickness: 0.6),
+                        Text(
+                          "${loc.features}:",
+                          style: const TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: (widget.bus['features'] as List)
+                              .map<Widget>(
+                                (f) => Chip(
+                                  label: Text(
+                                      localizeFeature(context, f.toString())),
+                                  backgroundColor: Colors.green.shade50,
+                                  labelStyle: const TextStyle(
+                                      fontSize: 13, color: Colors.green),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ],
                     ],
                   ),
                 ),
                 const SizedBox(height: 20),
 
+                // buttons (back + view bus)
                 SizedBox(
                   width: double.infinity,
                   child: Row(
@@ -657,12 +735,14 @@ Future<List<BusStop>> fetchBusStops(String busId) async {
                             ),
                           ),
                           onPressed: () async {
-                            final stopsList =
-                                await fetchBusStops(widget.bus['id'] ?? 'UnknownBus');
+                            final stopsList = await fetchBusStops(
+                                widget.bus['id'] ?? 'UnknownBus');
 
                             if (stopsList.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Stops not found for this bus")),
+                                const SnackBar(
+                                    content:
+                                        Text("Stops not found for this bus")),
                               );
                               return;
                             }
@@ -673,37 +753,45 @@ Future<List<BusStop>> fetchBusStops(String busId) async {
                                 builder: (context) => BusRoutePage(
                                   busId: widget.bus['id'] ?? 'UnknownBus',
                                   stops: stopsList,
-                                  gpsRef:
-                                      widget.bus['id'] == 'BUS002' ? 'gpsData2' : 'gpsData',
+                                  gpsRef: widget.bus['id'] == 'BUS002'
+                                      ? 'gpsData2'
+                                      : 'gpsData',
                                   onTransit: () async {
-                                    // fetch next bus dynamically
-                                    final nextBusSnapshot = await FirebaseFirestore.instance
-                                        .collection('buses')
-                                        .where('bus_id', isNotEqualTo: widget.bus['id'])
-                                        .limit(1)
-                                        .get();
+                                    final nextBusSnapshot =
+                                        await FirebaseFirestore.instance
+                                            .collection('buses')
+                                            .where('bus_id',
+                                                isNotEqualTo: widget.bus['id'])
+                                            .limit(1)
+                                            .get();
 
                                     if (nextBusSnapshot.docs.isNotEmpty) {
-                                      final nextBus = nextBusSnapshot.docs.first.data();
-                                      final nextStops =
-                                          (nextBus['Stops'] as List<dynamic>? ?? [])
-                                              .map((map) => BusStop(
-                                                    name: map['name'] ?? 'Unknown',
-                                                    lat: (map['lat'] ?? 0).toDouble(),
-                                                    lng: (map['lng'] ?? 0).toDouble(),
-                                                    departIn: map['time'],
-                                                  ))
-                                              .toList();
+                                      final nextBus =
+                                          nextBusSnapshot.docs.first.data();
+                                      final nextStops = (nextBus['stops']
+                                                  as List<dynamic>? ??
+                                              [])
+                                          .map((map) => BusStop(
+                                                name: map['name'] ?? 'Unknown',
+                                                lat: (map['lat'] ?? 0)
+                                                    .toDouble(),
+                                                lng: (map['lng'] ?? 0)
+                                                    .toDouble(),
+                                                departIn: map['time'],
+                                              ))
+                                          .toList();
 
                                       Navigator.pushReplacement(
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) => BusRoutePage(
-                                            busId: nextBus['bus_id'] ?? 'UnknownBus',
+                                            busId: nextBus['bus_id'] ??
+                                                'UnknownBus',
                                             stops: nextStops,
-                                            gpsRef: nextBus['bus_id'] == 'BUS002'
-                                                ? 'gpsData2'
-                                                : 'gpsData',
+                                            gpsRef:
+                                                nextBus['bus_id'] == 'BUS002'
+                                                    ? 'gpsData2'
+                                                    : 'gpsData',
                                             onTransit: null,
                                           ),
                                         ),
@@ -720,7 +808,6 @@ Future<List<BusStop>> fetchBusStops(String busId) async {
                           ),
                         ),
                       ),
-
                     ],
                   ),
                 ),
@@ -733,7 +820,9 @@ Future<List<BusStop>> fetchBusStops(String busId) async {
   }
 }
 
-List<Widget> _buildScheduleList(String? timeString) {
+List<Widget> _buildScheduleList(BuildContext context, String? timeString) {
+  final loc = AppLocalizations.of(context)!;
+
   if (timeString == null || timeString.isEmpty) return [];
 
   final List<String> schedule = timeString
@@ -743,9 +832,9 @@ List<Widget> _buildScheduleList(String? timeString) {
       .toList();
 
   return [
-    const Text(
-      "Schedule:",
-      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+    Text(
+      "${loc.schedule}:",
+      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
     ),
     const SizedBox(height: 6),
     ...schedule.map(

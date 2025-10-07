@@ -48,157 +48,168 @@ class _BusRoutePageState extends State<BusRoutePage>
 
   List<BusStop> _busStops = [];
 
-@override
-void initState() {
-  super.initState();
-  _pulseController = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 1),
-    lowerBound: 0.9,
-    upperBound: 1.3,
-  )..repeat(reverse: true);
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+      lowerBound: 0.9,
+      upperBound: 1.3,
+    )..repeat(reverse: true);
 
-  _mainBusController = StreamController<Map<String, dynamic>>.broadcast();
-  _altBusController = StreamController<Map<String, dynamic>>.broadcast();
+    _mainBusController = StreamController<Map<String, dynamic>>.broadcast();
+    _altBusController = StreamController<Map<String, dynamic>>.broadcast();
 
-  _setupGpsListeners();
+    _setupGpsListeners();
 
-  // Fetch stops from Firestore
-  fetchStopsFromFirestore().then((stops) {
-    setState(() => _busStops = stops);
-  });
+    // Fetch stops from Firestore
+    fetchStopsFromFirestore().then((stops) {
+      setState(() => _busStops = stops);
+    });
 
-  if (widget.onTransit != null) {
-    fetchNextBus();
-  }
-}
-
-Widget buildTransitCard() {
-  if (widget.busId != 'BUS001' && widget.busId != 'BUS002') return SizedBox.shrink();
-
-  Future<Map<String, String>> fetchSchedule(String busId) async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('buses')
-        .where('bus_id', isEqualTo: busId)
-        .limit(1)
-        .get();
-
-    if (snapshot.docs.isEmpty) return {};
-
-    final data = snapshot.docs.first.data();
-    final stops = (data['Stops'] as List<dynamic>? ?? []);
-
-    // Convert to { "StopName": "Time" }
-    return {
-      for (var stop in stops)
-        (stop['name'] ?? 'Unknown'): (stop['time'] ?? '--:--'),
-    };
+    if (widget.onTransit != null) {
+      fetchNextBus();
+    }
   }
 
-  return FutureBuilder(
-    future: Future.wait([
-      fetchSchedule("BUS001"),
-      fetchSchedule("BUS002"),
-    ]),
-    builder: (context, AsyncSnapshot<List<Map<String, String>>> snapshot) {
-      if (!snapshot.hasData) {
-        return const Center(child: CircularProgressIndicator());
-      }
+  Widget buildTransitCard() {
+    final loc = AppLocalizations.of(context)!;
+    if (widget.busId != 'BUS001' && widget.busId != 'BUS002')
+      return SizedBox.shrink();
 
-      final busASchedule = snapshot.data![0];
-      final busBSchedule = snapshot.data![1];
+    Future<Map<String, String>> fetchSchedule(String busId) async {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('buses')
+          .where('bus_id', isEqualTo: busId)
+          .limit(1)
+          .get();
 
-      // Steps logic same as before
-      List<Map<String, String>> steps = [];
-      if (widget.busId == "BUS001") {
-        steps = [
-          {"icon": "directions_bus", "text": "Take Bus A to Kianggeh"},
-          {"icon": "schedule", "text": "Arrive at Kianggeh at ${busASchedule['Kianggeh']}"},
-          {"icon": "swap_horiz", "text": "Transfer to Bus B at Kianggeh"},
-          {"icon": "location_on", "text": "Continue to Yayasan Complex or Ministry of Finance"},
-        ];
-      } else if (widget.busId == "BUS002") {
-        steps = [
-          {"icon": "directions_bus", "text": "Take Bus B to Kianggeh"},
-          {"icon": "schedule", "text": "Arrive at Kianggeh at ${busBSchedule['Kianggeh']}"},
-          {"icon": "swap_horiz", "text": "Transfer to Bus A at The Mall Gadong"},
-          {"icon": "location_on", "text": "Continue to PB School, Ong Sum Ping, or loop at The Mall Gadong"},
-        ];
-      }
+      if (snapshot.docs.isEmpty) return {};
 
-      IconData mapIcon(String name) {
-        switch (name) {
-          case "directions_bus":
-            return Icons.directions_bus;
-          case "schedule":
-            return Icons.access_time;
-          case "swap_horiz":
-            return Icons.swap_horiz;
-          case "location_on":
-            return Icons.location_on;
-          default:
-            return Icons.info;
+      final data = snapshot.docs.first.data();
+      final stops = (data['stops'] as List<dynamic>? ?? []);
+
+      // Convert to { "StopName": "Time" }
+      return {
+        for (var stop in stops)
+          (stop['name'] ?? 'Unknown'): (stop['time'] ?? '--:--'),
+      };
+    }
+
+    return FutureBuilder(
+      future: Future.wait([
+        fetchSchedule("BUS001"),
+        fetchSchedule("BUS002"),
+      ]),
+      builder: (context, AsyncSnapshot<List<Map<String, String>>> snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
         }
-      }
 
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-        child: Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          elevation: 4,
-          color: Colors.orange[50],
-          child: Padding(
-            padding: const EdgeInsets.all(18.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Row(
-                  children: [
-                    const Icon(Icons.compare_arrows, color: Colors.orange, size: 28),
-                    const SizedBox(width: 10),
-                    Text(
-                      "Transit Info",
-                      style: TextStyle(
+        final busASchedule = snapshot.data![0];
+        final busBSchedule = snapshot.data![1];
+
+        // Steps logic same as before
+        List<Map<String, String>> steps = [];
+
+        if (widget.busId == "BUS001") {
+          steps = [
+            {"icon": "directions_bus", "text": loc.takeBusAToKianggeh},
+            {
+              "icon": "schedule",
+              "text": "${loc.arriveAtKianggehAt} ${busASchedule['Kianggeh']}"
+            },
+            {"icon": "swap_horiz", "text": loc.transferToBusBAtKianggeh},
+            {"icon": "location_on", "text": loc.continueToYayasanOrMoF},
+          ];
+        } else if (widget.busId == "BUS002") {
+          steps = [
+            {"icon": "directions_bus", "text": loc.takeBusBToKianggeh},
+            {
+              "icon": "schedule",
+              "text": "${loc.arriveAtKianggehAt} ${busBSchedule['Kianggeh']}"
+            },
+            {"icon": "swap_horiz", "text": loc.transferToBusAAtTheMall},
+            {"icon": "location_on", "text": loc.continueToPBSchoolOrMall},
+          ];
+        }
+
+        IconData mapIcon(String name) {
+          switch (name) {
+            case "directions_bus":
+              return Icons.directions_bus;
+            case "schedule":
+              return Icons.access_time;
+            case "swap_horiz":
+              return Icons.swap_horiz;
+            case "location_on":
+              return Icons.location_on;
+            default:
+              return Icons.info;
+          }
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+          child: Card(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            elevation: 4,
+            color: Colors.orange[50],
+            child: Padding(
+              padding: const EdgeInsets.all(18.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Row(
+                    children: [
+                      const Icon(Icons.compare_arrows,
+                          color: Colors.orange, size: 28),
+                      const SizedBox(width: 10),
+                      Text(
+                        loc.transitInfo,
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
-                          color: Colors.orange[900]),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
+                          color: Colors.orange[900],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
 
-                // Steps
-                ...steps.map((step) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(mapIcon(step['icon']!), size: 22, color: Colors.orange[700]),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              step['text']!,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.black87,
-                                height: 1.5,
+                  // Steps
+                  ...steps.map((step) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(mapIcon(step['icon']!),
+                                size: 22, color: Colors.orange[700]),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                step['text']!,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black87,
+                                  height: 1.5,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    )),
-              ],
+                          ],
+                        ),
+                      )),
+                ],
+              ),
             ),
           ),
-        ),
-      );
-    },
-  );
-}
-
-
+        );
+      },
+    );
+  }
 
   void _setupGpsListeners() {
     // Listen to main bus GPS
@@ -236,20 +247,65 @@ Widget buildTransitCard() {
   }
 
   Future<void> fetchNextBus() async {
-  try {
-    // Fetch one alternative bus (different bus_id than current)
+    try {
+      // Fetch one alternative bus (different bus_id than current)
+      final snapshot = await FirebaseFirestore.instance
+          .collection('buses')
+          .where('bus_id', isNotEqualTo: widget.busId)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) return;
+
+      final busData = snapshot.docs.first.data();
+
+      // Firestore Stops field: List<Map>
+      final stopsList =
+          (busData['stops'] as List<dynamic>? ?? []).map((stopMap) {
+        final map = Map<String, dynamic>.from(stopMap);
+        return BusStop(
+          name: map['name'] ?? 'Unknown',
+          lat: (map['lat'] ?? 0).toDouble(),
+          lng: (map['lng'] ?? 0).toDouble(),
+          departIn: map['time'],
+        );
+      }).toList();
+
+      // DEBUG PRINT
+      print('===== Next bus fetched from Firestore =====');
+      print('Bus ID: ${busData['bus_id']}, Name: ${busData['bus_name']}');
+      for (var stop in stopsList) {
+        print(
+            'Stop: ${stop.name}, Lat: ${stop.lat}, Lng: ${stop.lng}, Time: ${stop.departIn}');
+      }
+
+      // Update state
+      setState(() {
+        nextBusId = busData['bus_id'];
+        nextBusName = busData['bus_name'];
+        nextBusStops = stopsList;
+      });
+    } catch (e) {
+      print('Error fetching next bus: $e');
+    }
+  }
+
+  Future<List<BusStop>> fetchStopsFromFirestore() async {
     final snapshot = await FirebaseFirestore.instance
         .collection('buses')
-        .where('bus_id', isNotEqualTo: widget.busId)
+        .where('bus_id', isEqualTo: widget.busId)
         .limit(1)
         .get();
 
-    if (snapshot.docs.isEmpty) return;
+    if (snapshot.docs.isEmpty) return [];
 
     final busData = snapshot.docs.first.data();
 
     // Firestore Stops field: List<Map>
-    final stopsList = (busData['Stops'] as List<dynamic>? ?? []).map((stopMap) {
+    final stopsList = busData['stops'] as List<dynamic>? ?? [];
+
+    // Map to List<BusStop>
+    List<BusStop> busStops = stopsList.map((stopMap) {
       final map = Map<String, dynamic>.from(stopMap);
       return BusStop(
         name: map['name'] ?? 'Unknown',
@@ -259,52 +315,8 @@ Widget buildTransitCard() {
       );
     }).toList();
 
-    // DEBUG PRINT
-    print('===== Next bus fetched from Firestore =====');
-    print('Bus ID: ${busData['bus_id']}, Name: ${busData['bus_name']}');
-    for (var stop in stopsList) {
-      print('Stop: ${stop.name}, Lat: ${stop.lat}, Lng: ${stop.lng}, Time: ${stop.departIn}');
-    }
-
-    // Update state
-    setState(() {
-      nextBusId = busData['bus_id'];
-      nextBusName = busData['bus_name'];
-      nextBusStops = stopsList;
-    });
-  } catch (e) {
-    print('Error fetching next bus: $e');
+    return busStops;
   }
-}
-
-Future<List<BusStop>> fetchStopsFromFirestore() async {
-  final snapshot = await FirebaseFirestore.instance
-      .collection('buses')
-      .where('bus_id', isEqualTo: widget.busId)
-      .limit(1)
-      .get();
-
-  if (snapshot.docs.isEmpty) return [];
-
-  final busData = snapshot.docs.first.data();
-
-  // Firestore Stops field: List<Map>
-  final stopsList = busData['Stops'] as List<dynamic>? ?? [];
-
-  // Map to List<BusStop>
-  List<BusStop> busStops = stopsList.map((stopMap) {
-    final map = Map<String, dynamic>.from(stopMap);
-    return BusStop(
-      name: map['name'] ?? 'Unknown',
-      lat: (map['lat'] ?? 0).toDouble(),
-      lng: (map['lng'] ?? 0).toDouble(),
-      departIn: map['time'],
-    );
-  }).toList();
-
-  return busStops;
-}
-
 
   @override
   void dispose() {
@@ -320,10 +332,10 @@ Future<List<BusStop>> fetchStopsFromFirestore() async {
   }
 
   int _calculateETA(double distanceMeters, {required double speedKmh}) {
-  if (speedKmh <= 0) return -1; // bus not moving
-  double speedMps = speedKmh * 1000 / 3600;
-  return (distanceMeters / speedMps / 60).round();
-}
+    if (speedKmh <= 0) return -1; // bus not moving
+    double speedMps = speedKmh * 1000 / 3600;
+    return (distanceMeters / speedMps / 60).round();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -357,92 +369,97 @@ Future<List<BusStop>> fetchStopsFromFirestore() async {
                   ((data['speed'] ?? 0).toDouble()) * 3.6; // convert m/s → km/h
             }
             return _busStops.isEmpty
-    ? const Center(child: CircularProgressIndicator())
-    : ListView(
-              children: [
-                // Current bus stops
-                ..._busStops.asMap().entries.map((entry) {
-                  int index = entry.key;
-                  BusStop stop = entry.value;
-                  return buildStopRow(
-                      stop, index, busLat, busLng, busSpeed, widget.stops);
-                }).toList(),
-
-                // ExpansionTile for next bus if available
-                // Replace the existing ExpansionTile code with this:
-                if (nextBusStops != null)
-                  ExpansionTile(
-                    title: Text(
-                      nextBusName ?? loc.nextBus,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, color: Colors.orange),
-                    ),
+                ? const Center(child: CircularProgressIndicator())
+                : ListView(
                     children: [
-                      StreamBuilder<Map<String, dynamic>>(
-                        stream: _altBusController.stream,
-                        initialData: _altBusData,
-                        builder: (context, altSnapshot) {
-                          double? altBusLat;
-                          double? altBusLng;
-                          double altBusSpeed = 30;
+                      // Current bus stops
+                      ..._busStops.asMap().entries.map((entry) {
+                        int index = entry.key;
+                        BusStop stop = entry.value;
+                        return buildStopRow(stop, index, busLat, busLng,
+                            busSpeed, widget.stops);
+                      }).toList(),
 
-                          if (altSnapshot.hasData) {
-                            final data = altSnapshot.data!;
-                            altBusLat = (data['latitude'] ?? 0).toDouble();
-                            altBusLng = (data['longitude'] ?? 0).toDouble();
-                            altBusSpeed =
-                                ((data['speed'] ?? 0).toDouble()) * 3.6;
-                          }
+                      // ExpansionTile for next bus if available
+                      // Replace the existing ExpansionTile code with this:
+                      if (nextBusStops != null)
+                        ExpansionTile(
+                          title: Text(
+                            nextBusName ?? loc.nextBus,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange),
+                          ),
+                          children: [
+                            StreamBuilder<Map<String, dynamic>>(
+                              stream: _altBusController.stream,
+                              initialData: _altBusData,
+                              builder: (context, altSnapshot) {
+                                double? altBusLat;
+                                double? altBusLng;
+                                double altBusSpeed = 30;
 
-                          return Column(
-                            children:
-                                nextBusStops!.asMap().entries.map((entry) {
-                              int index = entry.key;
-                              BusStop stop = entry.value;
-                              return buildStopRow(
-                                stop,
-                                index,
-                                altBusLat,
-                                altBusLng,
-                                altBusSpeed,
-                                nextBusStops!,
-                              );
-                            }).toList(),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
+                                if (altSnapshot.hasData) {
+                                  final data = altSnapshot.data!;
+                                  altBusLat =
+                                      (data['latitude'] ?? 0).toDouble();
+                                  altBusLng =
+                                      (data['longitude'] ?? 0).toDouble();
+                                  altBusSpeed =
+                                      ((data['speed'] ?? 0).toDouble()) * 3.6;
+                                }
 
-                // View Map button
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      // Navigate to homepage-mapform
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              HomePage(initialTab: 1), // 1 = Map Form tab
+                                return Column(
+                                  children: nextBusStops!
+                                      .asMap()
+                                      .entries
+                                      .map((entry) {
+                                    int index = entry.key;
+                                    BusStop stop = entry.value;
+                                    return buildStopRow(
+                                      stop,
+                                      index,
+                                      altBusLat,
+                                      altBusLng,
+                                      altBusSpeed,
+                                      nextBusStops!,
+                                    );
+                                  }).toList(),
+                                );
+                              },
+                            ),
+                          ],
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.map),
-                    label: Text(loc.viewMap),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      textStyle: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-                // Transit Info Card
-buildTransitCard(),
-              ],
-            );
+
+                      // View Map button
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            // Navigate to homepage-mapform
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    HomePage(initialTab: 1), // 1 = Map Form tab
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.map),
+                          label: Text(loc.viewMap),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            textStyle: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      // Transit Info Card
+                      buildTransitCard(),
+                    ],
+                  );
           },
         ),
       ),
@@ -450,7 +467,7 @@ buildTransitCard(),
   }
 
   Widget buildStopRow(BusStop stop, int index, double? busLat, double? busLng,
-    double busSpeed, List<BusStop> stopsList) {
+      double busSpeed, List<BusStop> stopsList) {
     String etaText = "--";
     bool isNearby = false;
     Color lineColor = Colors.grey[300]!;

@@ -140,4 +140,75 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get childrenSeniors => 'Kanak-kanak / Warga Emas';
+
+  @override
+  String get schedule => 'Jadual';
+
+  @override
+  String get features => 'Ciri-ciri';
+
+  @override
+  String get duration => 'Tempoh';
+
+  @override
+  String get driver => 'Pemandu';
+
+  @override
+  String get busNumber => 'No Bas';
+
+  @override
+  String get unassigned => 'Belum Ditetapkan';
+
+  @override
+  String get takeBusAToKianggeh => 'Naik Bas A ke Kianggeh';
+
+  @override
+  String get arriveAtKianggehAt => 'Tiba di Kianggeh pada';
+
+  @override
+  String get transferToBusBAtKianggeh => 'Tukar ke Bas B di Kianggeh';
+
+  @override
+  String get continueToYayasanOrMoF =>
+      'Teruskan ke Kompleks Yayasan atau Kementerian Kewangan';
+
+  @override
+  String get takeBusBToKianggeh => 'Naik Bas B ke Kianggeh';
+
+  @override
+  String get transferToBusAAtTheMall => 'Tukar ke Bas A di The Mall Gadong';
+
+  @override
+  String get continueToPBSchoolOrMall =>
+      'Teruskan ke Sekolah PB, Ong Sum Ping, atau pusing di The Mall Gadong';
+
+  @override
+  String get transitInfo => 'Maklumat Transit';
+
+  @override
+  String get busPrefix => 'Bas';
+
+  @override
+  String get wifi => 'Wi-Fi';
+
+  @override
+  String get aircond => 'Penyaman Udara';
+
+  @override
+  String get wheelchairLifts => 'Lif Kerusi Roda';
+
+  @override
+  String get wheelchairSpace => 'Ruang Kerusi Roda';
+
+  @override
+  String get duration_5_10 => 'Anggaran 5–10 minit bagi setiap hentian';
+
+  @override
+  String get duration_5_15 => 'Anggaran 5–15 minit bagi setiap hentian';
+
+  @override
+  String get duration_10_15 => 'Anggaran 10–15 minit bagi setiap hentian';
+
+  @override
+  String get duration_10_20 => 'Anggaran 10–20 minit bagi setiap hentian';
 }

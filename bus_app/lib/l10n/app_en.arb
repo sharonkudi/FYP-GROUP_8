@@ -45,5 +45,31 @@
   "offlineSystemMap": "Offline System Map",
   "offlineBusSchedule": "Offline Bus Schedule",
     "adults": "Adults",
-  "childrenSeniors": "Children / Seniors"
+  "childrenSeniors": "Children / Seniors",
+  "schedule": "Schedule",
+  "features": "Features",
+  "duration": "Duration",
+  "driver": "Driver",
+  "busNumber": "Bus No",
+  "unassigned": "Unassigned",
+  "takeBusAToKianggeh": "Take Bus A to Kianggeh",
+  "arriveAtKianggehAt": "Arrive at Kianggeh at",
+  "transferToBusBAtKianggeh": "Transfer to Bus B at Kianggeh",
+  "continueToYayasanOrMoF": "Continue to Yayasan Complex or Ministry of Finance",
+
+  "takeBusBToKianggeh": "Take Bus B to Kianggeh",
+  "transferToBusAAtTheMall": "Transfer to Bus A at The Mall Gadong",
+  "continueToPBSchoolOrMall": "Continue to PB School, Ong Sum Ping, or loop at The Mall Gadong",
+   "transitInfo": "Transit Info",
+   
+  "busPrefix": "Bus",
+  "wifi": "Wi-Fi",
+  "aircond": "Air Conditioning",
+  "wheelchairLifts": "Wheelchair Lifts",
+  "wheelchairSpace": "Wheelchair Space",
+  
+  "duration_5_10": "Estimated 5–10 minutes for each stop",
+  "duration_5_15": "Estimated 5–15 minutes for each stop",
+  "duration_10_15": "Estimated 10–15 minutes for each stop",
+  "duration_10_20": "Estimated 10–20 minutes for each stop"
 }

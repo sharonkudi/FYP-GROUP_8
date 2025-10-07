@@ -140,4 +140,75 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get childrenSeniors => 'Children / Seniors';
+
+  @override
+  String get schedule => 'Schedule';
+
+  @override
+  String get features => 'Features';
+
+  @override
+  String get duration => 'Duration';
+
+  @override
+  String get driver => 'Driver';
+
+  @override
+  String get busNumber => 'Bus No';
+
+  @override
+  String get unassigned => 'Unassigned';
+
+  @override
+  String get takeBusAToKianggeh => 'Take Bus A to Kianggeh';
+
+  @override
+  String get arriveAtKianggehAt => 'Arrive at Kianggeh at';
+
+  @override
+  String get transferToBusBAtKianggeh => 'Transfer to Bus B at Kianggeh';
+
+  @override
+  String get continueToYayasanOrMoF =>
+      'Continue to Yayasan Complex or Ministry of Finance';
+
+  @override
+  String get takeBusBToKianggeh => 'Take Bus B to Kianggeh';
+
+  @override
+  String get transferToBusAAtTheMall => 'Transfer to Bus A at The Mall Gadong';
+
+  @override
+  String get continueToPBSchoolOrMall =>
+      'Continue to PB School, Ong Sum Ping, or loop at The Mall Gadong';
+
+  @override
+  String get transitInfo => 'Transit Info';
+
+  @override
+  String get busPrefix => 'Bus';
+
+  @override
+  String get wifi => 'Wi-Fi';
+
+  @override
+  String get aircond => 'Air Conditioning';
+
+  @override
+  String get wheelchairLifts => 'Wheelchair Lifts';
+
+  @override
+  String get wheelchairSpace => 'Wheelchair Space';
+
+  @override
+  String get duration_5_10 => 'Estimated 5–10 minutes for each stop';
+
+  @override
+  String get duration_5_15 => 'Estimated 5–15 minutes for each stop';
+
+  @override
+  String get duration_10_15 => 'Estimated 10–15 minutes for each stop';
+
+  @override
+  String get duration_10_20 => 'Estimated 10–20 minutes for each stop';
 }

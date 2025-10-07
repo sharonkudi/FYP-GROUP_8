@@ -45,5 +45,31 @@
   "offlineSystemMap": "Peta Sistem Luar Talian",
   "offlineBusSchedule": "Jadual Bas Luar Talian",
    "adults": "Dewasa",
-  "childrenSeniors": "Kanak-kanak / Warga Emas"
+  "childrenSeniors": "Kanak-kanak / Warga Emas",
+  "schedule": "Jadual",
+  "features": "Ciri-ciri",
+  "duration": "Tempoh",
+  "driver": "Pemandu",
+  "busNumber": "No Bas",
+  "unassigned": "Belum Ditetapkan",
+  "takeBusAToKianggeh": "Naik Bas A ke Kianggeh",
+  "arriveAtKianggehAt": "Tiba di Kianggeh pada",
+  "transferToBusBAtKianggeh": "Tukar ke Bas B di Kianggeh",
+  "continueToYayasanOrMoF": "Teruskan ke Kompleks Yayasan atau Kementerian Kewangan",
+
+  "takeBusBToKianggeh": "Naik Bas B ke Kianggeh",
+  "transferToBusAAtTheMall": "Tukar ke Bas A di The Mall Gadong",
+  "continueToPBSchoolOrMall": "Teruskan ke Sekolah PB, Ong Sum Ping, atau pusing di The Mall Gadong",
+   "transitInfo": "Maklumat Transit",
+   
+  "busPrefix": "Bas",
+  "wifi": "Wi-Fi",
+  "aircond": "Penyaman Udara",
+  "wheelchairLifts": "Lif Kerusi Roda",
+  "wheelchairSpace": "Ruang Kerusi Roda",
+  
+  "duration_5_10": "Anggaran 5–10 minit bagi setiap hentian",
+  "duration_5_15": "Anggaran 5–15 minit bagi setiap hentian",
+  "duration_10_15": "Anggaran 10–15 minit bagi setiap hentian",
+  "duration_10_20": "Anggaran 10–20 minit bagi setiap hentian"
 }
