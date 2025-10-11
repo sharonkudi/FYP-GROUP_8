@@ -30,7 +30,6 @@ class _HomePageState extends State<Home> {
   static const double _dockBottomSafe = 8;
   static const double _tabsHeight = 38;
 
-  // Stops list will come dynamically from Firestore in MapFormPage
   List<String> get _stopNames => [];
 
   final _buses = const [
@@ -77,9 +76,11 @@ class _HomePageState extends State<Home> {
         index: _index,
         children: [
           const StopsListPage(),
-          MapFormPage(key: _mapKey), // dynamic map with Firestore stops
+          MapFormPage(key: _mapKey),
         ],
       ),
+      // ✅ safely hides the extra dark blue bottom bar
+      bottomNavigationBar: const SizedBox.shrink(),
     );
   }
 }
