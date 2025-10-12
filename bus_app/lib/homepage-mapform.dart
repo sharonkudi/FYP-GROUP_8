@@ -1,6 +1,8 @@
 // lib/homepage-mapform.dart
 import 'dart:async';
 import 'dart:ui';
+
+import 'package:bus_app/settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -8,7 +10,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:open_route_service/open_route_service.dart';
+// 🔸 Localization
 import 'package:bus_app/l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
 
 class MapFormPage extends StatefulWidget {
   final String? focusBusId;
@@ -66,8 +70,8 @@ class MapPageState extends State<MapFormPage> {
     if (p == LocationPermission.deniedForever) return;
 
     Geolocator.getPositionStream(
-      locationSettings:
-          const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 10),
+      locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high, distanceFilter: 10),
     ).listen((pos) {
       setState(() => _devicePosition = LatLng(pos.latitude, pos.longitude));
     });
@@ -163,369 +167,433 @@ class MapPageState extends State<MapFormPage> {
   }
 
 // ---------------- ROUTE LOGIC ----------------
-void _clearRoute() {
-  setState(() {
-    _routeA.clear();
-    _routeB.clear();
-    _walkLine.clear();
-  });
-}
-
-Future<void> _generateDropdownRoute() async {
-  if (_selectedFromStop == null || _selectedToStop == null) {
-    _clearRoute();
-    return;
+  void _clearRoute() {
+    setState(() {
+      _routeA.clear();
+      _routeB.clear();
+      _walkLine.clear();
+    });
   }
 
-  try {
-    final from = _firebaseStops.firstWhere((s) => s.name == _selectedFromStop);
-    final to = _firebaseStops.firstWhere((s) => s.name == _selectedToStop);
-
-    if (from.busName == to.busName) {
-      await _drawSingleRoute(from, to);
-    } else {
-      await _drawTransitRoute(from, to);
+  Future<void> _generateDropdownRoute() async {
+    if (_selectedFromStop == null || _selectedToStop == null) {
+      _clearRoute();
+      return;
     }
 
-    _startEtaTimer(from.busName, to.lat, to.lng, from.name);
-  } catch (e) {
-    debugPrint('Route generation error: $e');
+    try {
+      final from =
+          _firebaseStops.firstWhere((s) => s.name == _selectedFromStop);
+      final to = _firebaseStops.firstWhere((s) => s.name == _selectedToStop);
+
+      if (from.busName == to.busName) {
+        await _drawSingleRoute(from, to);
+      } else {
+        await _drawTransitRoute(from, to);
+      }
+
+      _startEtaTimer(from.busName, to.lat, to.lng, from.name);
+    } catch (e) {
+      debugPrint('Route generation error: $e');
+    }
   }
-}
 
 // ---------- SINGLE BUS ROUTE ----------
-Future<void> _drawSingleRoute(StopData from, StopData to) async {
-  try {
-    final ors = OpenRouteService(
-      apiKey:
-          'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjU4YzVjYzVkZWZiZDRlN2NhM2VhMDI5Mjg3NWViNmFhIiwiaCI6Im11cm11cjY0In0=',
-    );
+  Future<void> _drawSingleRoute(StopData from, StopData to) async {
+    try {
+      final ors = OpenRouteService(
+        apiKey:
+            'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjU4YzVjYzVkZWZiZDRlN2NhM2VhMDI5Mjg3NWViNmFhIiwiaCI6Im11cm11cjY0In0=',
+      );
 
-    final coords = await ors.directionsRouteCoordsGet(
-      startCoordinate: ORSCoordinate(latitude: from.lat, longitude: from.lng),
-      endCoordinate: ORSCoordinate(latitude: to.lat, longitude: to.lng),
-    );
+      final coords = await ors.directionsRouteCoordsGet(
+        startCoordinate: ORSCoordinate(latitude: from.lat, longitude: from.lng),
+        endCoordinate: ORSCoordinate(latitude: to.lat, longitude: to.lng),
+      );
 
-    if (mounted) {
-      setState(() {
-        _routeA = coords.map((c) => LatLng(c.latitude, c.longitude)).toList();
-        _routeB.clear();
-        _walkLine.clear();
-      });
+      if (mounted) {
+        setState(() {
+          _routeA = coords.map((c) => LatLng(c.latitude, c.longitude)).toList();
+          _routeB.clear();
+          _walkLine.clear();
+        });
+      }
+    } catch (e) {
+      debugPrint("Route error $e");
     }
-  } catch (e) {
-    debugPrint("Route error $e");
   }
-}
 
 // ---------- TRANSIT ROUTE ----------
-Future<void> _drawTransitRoute(StopData from, StopData to) async {
-  try {
-    final ors = OpenRouteService(
-      apiKey:
-          'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjU4YzVjYzVkZWZiZDRlN2NhM2VhMDI5Mjg3NWViNmFhIiwiaCI6Im11cm11cjY0In0=',
-    );
-
-    // Clear previous route
-    if (mounted) {
-      setState(() {
-        _routeA.clear();
-        _routeB.clear();
-        _walkLine.clear();
-      });
-    }
-
-    // Identify transit transfer stops
-    final kianggehA = _firebaseStops.firstWhere(
-      (s) => s.name.toLowerCase().contains("kianggeh") && s.busName.contains("Bus A"),
-    );
-    final yayasanB = _firebaseStops.firstWhere(
-      (s) => s.name.toLowerCase().contains("yayasan") && s.busName.contains("Bus B"),
-    );
-
-    // Determine direction
-    final isAToB = from.busName.contains("Bus A") && to.busName.contains("Bus B");
-    final isBToA = from.busName.contains("Bus B") && to.busName.contains("Bus A");
-
-    List<LatLng> seg1 = [];
-    List<LatLng> seg3 = [];
-    List<LatLng> walkSeg = [];
-
-    if (isAToB) {
-      final r1 = await ors.directionsRouteCoordsGet(
-        startCoordinate: ORSCoordinate(latitude: from.lat, longitude: from.lng),
-        endCoordinate: ORSCoordinate(latitude: kianggehA.lat, longitude: kianggehA.lng),
+  Future<void> _drawTransitRoute(StopData from, StopData to) async {
+    try {
+      final ors = OpenRouteService(
+        apiKey:
+            'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjU4YzVjYzVkZWZiZDRlN2NhM2VhMDI5Mjg3NWViNmFhIiwiaCI6Im11cm11cjY0In0=',
       );
 
-      final r2 = await ors.directionsRouteCoordsGet(
-        startCoordinate: ORSCoordinate(latitude: yayasanB.lat, longitude: yayasanB.lng),
-        endCoordinate: ORSCoordinate(latitude: to.lat, longitude: to.lng),
+      // Clear previous route
+      if (mounted) {
+        setState(() {
+          _routeA.clear();
+          _routeB.clear();
+          _walkLine.clear();
+        });
+      }
+
+      // Identify transit transfer stops
+      final kianggehA = _firebaseStops.firstWhere(
+        (s) =>
+            s.name.toLowerCase().contains("kianggeh") &&
+            s.busName.contains("Bus A"),
+      );
+      final yayasanB = _firebaseStops.firstWhere(
+        (s) =>
+            s.name.toLowerCase().contains("yayasan") &&
+            s.busName.contains("Bus B"),
       );
 
-      seg1 = r1.map((c) => LatLng(c.latitude, c.longitude)).toList();
-      seg3 = r2.map((c) => LatLng(c.latitude, c.longitude)).toList();
-      walkSeg = [
-        LatLng(kianggehA.lat, kianggehA.lng),
-        LatLng(yayasanB.lat, yayasanB.lng),
-      ];
+      // Determine direction
+      final isAToB =
+          from.busName.contains("Bus A") && to.busName.contains("Bus B");
+      final isBToA =
+          from.busName.contains("Bus B") && to.busName.contains("Bus A");
 
-      debugPrint("Transit A→B: A:${seg1.length} | Walk:${walkSeg.length} | B:${seg3.length}");
-    } else if (isBToA) {
-      final r1 = await ors.directionsRouteCoordsGet(
-        startCoordinate: ORSCoordinate(latitude: from.lat, longitude: from.lng),
-        endCoordinate: ORSCoordinate(latitude: yayasanB.lat, longitude: yayasanB.lng),
-      );
+      List<LatLng> seg1 = [];
+      List<LatLng> seg3 = [];
+      List<LatLng> walkSeg = [];
 
-      final r2 = await ors.directionsRouteCoordsGet(
-        startCoordinate: ORSCoordinate(latitude: kianggehA.lat, longitude: kianggehA.lng),
-        endCoordinate: ORSCoordinate(latitude: to.lat, longitude: to.lng),
-      );
+      if (isAToB) {
+        final r1 = await ors.directionsRouteCoordsGet(
+          startCoordinate:
+              ORSCoordinate(latitude: from.lat, longitude: from.lng),
+          endCoordinate:
+              ORSCoordinate(latitude: kianggehA.lat, longitude: kianggehA.lng),
+        );
 
-      seg1 = r1.map((c) => LatLng(c.latitude, c.longitude)).toList();
-      seg3 = r2.map((c) => LatLng(c.latitude, c.longitude)).toList();
-      walkSeg = [
-        LatLng(yayasanB.lat, yayasanB.lng),
-        LatLng(kianggehA.lat, kianggehA.lng),
-      ];
+        final r2 = await ors.directionsRouteCoordsGet(
+          startCoordinate:
+              ORSCoordinate(latitude: yayasanB.lat, longitude: yayasanB.lng),
+          endCoordinate: ORSCoordinate(latitude: to.lat, longitude: to.lng),
+        );
 
-      debugPrint("Transit B→A: B:${seg1.length} | Walk:${walkSeg.length} | A:${seg3.length}");
-    } else {
-      debugPrint("❌ No valid transit direction found.");
-      return;
+        seg1 = r1.map((c) => LatLng(c.latitude, c.longitude)).toList();
+        seg3 = r2.map((c) => LatLng(c.latitude, c.longitude)).toList();
+        walkSeg = [
+          LatLng(kianggehA.lat, kianggehA.lng),
+          LatLng(yayasanB.lat, yayasanB.lng),
+        ];
+
+        debugPrint(
+            "Transit A→B: A:${seg1.length} | Walk:${walkSeg.length} | B:${seg3.length}");
+      } else if (isBToA) {
+        final r1 = await ors.directionsRouteCoordsGet(
+          startCoordinate:
+              ORSCoordinate(latitude: from.lat, longitude: from.lng),
+          endCoordinate:
+              ORSCoordinate(latitude: yayasanB.lat, longitude: yayasanB.lng),
+        );
+
+        final r2 = await ors.directionsRouteCoordsGet(
+          startCoordinate:
+              ORSCoordinate(latitude: kianggehA.lat, longitude: kianggehA.lng),
+          endCoordinate: ORSCoordinate(latitude: to.lat, longitude: to.lng),
+        );
+
+        seg1 = r1.map((c) => LatLng(c.latitude, c.longitude)).toList();
+        seg3 = r2.map((c) => LatLng(c.latitude, c.longitude)).toList();
+        walkSeg = [
+          LatLng(yayasanB.lat, yayasanB.lng),
+          LatLng(kianggehA.lat, kianggehA.lng),
+        ];
+
+        debugPrint(
+            "Transit B→A: B:${seg1.length} | Walk:${walkSeg.length} | A:${seg3.length}");
+      } else {
+        debugPrint("❌ No valid transit direction found.");
+        return;
+      }
+
+      if (seg1.isEmpty || seg3.isEmpty) {
+        debugPrint("⚠️ Empty route segment – skipping render.");
+        return;
+      }
+
+      if (mounted) {
+        setState(() {
+          _routeA = seg1;
+          _walkLine = walkSeg;
+          _routeB = seg3;
+        });
+
+        // Delay to ensure map renders first before showing popup
+        Future.delayed(const Duration(milliseconds: 800), () {
+          if (!mounted) return;
+          if (isAToB) {
+            _showTransitPopup(
+              context,
+              "Bus A (BUS001)",
+              "Bus B (BUS002)",
+              AppLocalizations.of(context)!.routeKianggehYayasan,
+            );
+          } else {
+            _showTransitPopup(
+              context,
+              "Bus B (BUS002)",
+              "Bus A (BUS001)",
+              AppLocalizations.of(context)!.routeYayasanKianggeh,
+            );
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint("Transit route error: $e");
     }
-
-    if (seg1.isEmpty || seg3.isEmpty) {
-      debugPrint("⚠️ Empty route segment – skipping render.");
-      return;
-    }
-
-    if (mounted) {
-      setState(() {
-        _routeA = seg1;
-        _walkLine = walkSeg;
-        _routeB = seg3;
-      });
-
-      // Delay to ensure map renders first before showing popup
-      Future.delayed(const Duration(milliseconds: 800), () {
-        if (!mounted) return;
-        if (isAToB) {
-          _showTransitPopup(
-              context, "Bus A (BUS001)", "Bus B (BUS002)", "Kianggeh → Yayasan Complex");
-        } else {
-          _showTransitPopup(
-              context, "Bus B (BUS002)", "Bus A (BUS001)", "Yayasan Complex → Kianggeh");
-        }
-      });
-    }
-  } catch (e) {
-    debugPrint("Transit route error: $e");
   }
-}
-// ---------------- INFO POPUPS ----------------
-void _showBusInfoPopup(BuildContext context, BusInfo info) {
-  showModalBottomSheet(
-    context: context,
-    backgroundColor: Colors.transparent,
-    builder: (_) => ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      child: Container(
-        color: Colors.white.withOpacity(0.95),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(info.name,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text("Driver: ${info.assignedTo}", style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 8),
-            const Text(
-  "Features:",
-  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-),
-const SizedBox(height: 8),
 
-Column(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: info.features.map((f) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("• ",
-              style: TextStyle(fontSize: 16, color: Colors.black87)),
-          Expanded(
-            child: Text(
-              f,
-              style: const TextStyle(fontSize: 16, color: Colors.black87),
-            ),
+// ---------------- INFO POPUPS ----------------
+  void _showBusInfoPopup(BuildContext context, BusInfo info) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: Container(
+          color: Colors.white.withOpacity(0.95),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                info.name,
+                style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "${AppLocalizations.of(context)!.driver}: ${info.assignedTo}",
+                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                      fontSize: 16,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                AppLocalizations.of(context)!.features,
+                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: info.features.map((f) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "• ",
+                          style: TextStyle(fontSize: 16, color: Colors.black87),
+                        ),
+                        Expanded(
+                          child: Text(
+                            f,
+                            style: const TextStyle(
+                                fontSize: 16, color: Colors.black87),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.center,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style:
+                      ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
+                  child: Text(
+                    AppLocalizations.of(context)!.close,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showStopInfoPopup(BuildContext context, StopData stop) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          stop.name,
+          style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        content: Text(
+          "${AppLocalizations.of(context)!.bus}: ${stop.busName}\n${AppLocalizations.of(context)!.scheduledTime}: ${stop.time}",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(AppLocalizations.of(context)!.close),
           ),
         ],
       ),
     );
-  }).toList(),
-),
-
-
-
-
-
-
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.center,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
-                child: const Text("Close", style: TextStyle(color: Colors.white)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-void _showStopInfoPopup(BuildContext context, StopData stop) {
-  showDialog(
-    context: context,
-    builder: (_) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text(stop.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-      content: Text("Bus: ${stop.busName}\nScheduled Time: ${stop.time}"),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text("Close"),
-        ),
-      ],
-    ),
-  );
-}
+  }
 
 // ---------------- ETA INFO POPUP WHEN TAP ----------------
-void _showEtaDetailsPopup(BuildContext context) {
-  if (_etaFromStop == null || _etaStopName == null) return;
+  void _showEtaDetailsPopup(BuildContext context) {
+    if (_etaFromStop == null || _etaStopName == null) return;
 
-  // Find bus info from Firestore snapshot
-  final busInfo = _busInfo.values.firstWhere(
-    (b) => b.name == _etaFromStop,
-    orElse: () => BusInfo(
-      docId: "",
-      busId: "",
-      name: _etaFromStop ?? "",
-      assignedTo: "Unknown",
-      features: [],
-    ),
-  );
+    final busInfo = _busInfo.values.firstWhere(
+      (b) => b.name == _etaFromStop,
+      orElse: () => BusInfo(
+        docId: "",
+        busId: "",
+        name: _etaFromStop ?? "",
+        assignedTo: AppLocalizations.of(context)!.unknown,
+        features: [],
+      ),
+    );
 
-  // Find stop info
-  final stopInfo = _firebaseStops.firstWhere(
-    (s) => s.name == _etaStopName,
-    orElse: () => StopData(
-      name: _etaStopName ?? "",
-      lat: 0,
-      lng: 0,
-      time: "Unknown",
-      busName: busInfo.name,
-    ),
-  );
+    final stopInfo = _firebaseStops.firstWhere(
+      (s) => s.name == _etaStopName,
+      orElse: () => StopData(
+        name: _etaStopName ?? "",
+        lat: 0,
+        lng: 0,
+        time: AppLocalizations.of(context)!.unknown,
+        busName: busInfo.name,
+      ),
+    );
 
-  showModalBottomSheet(
-    context: context,
-    backgroundColor: Colors.transparent,
-    builder: (_) => ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      child: Container(
-        color: Colors.white.withOpacity(0.95),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(busInfo.name,
-                style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.indigo)),
-            const SizedBox(height: 6),
-            Text("Driver: ${busInfo.assignedTo}",
-                style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 8),
-            const Text("Bus Features:",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            ...busInfo.features.map((f) => Text("• $f")),
-            const Divider(height: 20, color: Colors.black26),
-            Text("Next Stop: ${stopInfo.name}",
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            Text("Scheduled Time: ${stopInfo.time}",
-                style: const TextStyle(fontSize: 15)),
-            const SizedBox(height: 10),
-            Text("Status: $_etaStatus",
-                style:
-                    const TextStyle(fontSize: 15, color: Colors.deepPurple)),
-            const SizedBox(height: 15),
-            Align(
-              alignment: Alignment.center,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style:
-                    ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
-                child:
-                    const Text("Close", style: TextStyle(color: Colors.white)),
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: Container(
+          color: Colors.white.withOpacity(0.95),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                busInfo.name,
+                style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: Colors.indigo,
+                    ),
               ),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Text(
+                "${AppLocalizations.of(context)!.driver}: ${busInfo.assignedTo}",
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                AppLocalizations.of(context)!.busFeatures,
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              ...busInfo.features.map((f) => Text("• $f")),
+              const Divider(height: 20, color: Colors.black26),
+              Text(
+                "${AppLocalizations.of(context)!.nextStop}: ${stopInfo.name}",
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                "${AppLocalizations.of(context)!.scheduledTime}: ${stopInfo.time}",
+                style: const TextStyle(fontSize: 15),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                "${AppLocalizations.of(context)!.status}: $_etaStatus",
+                style: const TextStyle(fontSize: 15, color: Colors.deepPurple),
+              ),
+              const SizedBox(height: 15),
+              Align(
+                alignment: Alignment.center,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style:
+                      ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
+                  child: Text(
+                    AppLocalizations.of(context)!.close,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 
 // ---------------- ETA TIMER  ----------------
-void _startEtaTimer(String busName, double stopLat, double stopLng, String fromStop) {
-  _etaTimer?.cancel();
+  void _startEtaTimer(
+      String busName, double stopLat, double stopLng, String fromStop) {
+    _etaTimer?.cancel();
 
-  _etaTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-    final busId = busName.contains("A") ? "BUS001" : "BUS002";
-    final busPos = _busPositions[busId];
-    if (busPos == null) return;
+    _etaTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      final loc = AppLocalizations.of(context)!;
+      final busId = busName.contains("A") ? "BUS001" : "BUS002";
+      final busPos = _busPositions[busId];
+      if (busPos == null) return;
 
-    // Calculate distance (in meters) between bus and target stop
-    final distance = const Distance().as(LengthUnit.Meter, busPos, LatLng(stopLat, stopLng));
+      // Calculate distance (in meters) between bus and target stop
+      final distance = const Distance()
+          .as(LengthUnit.Meter, busPos, LatLng(stopLat, stopLng));
 
-    // Assume realistic average speed ~25 km/h (≈ 6.94 m/s)
-    final avgSpeed = 6.94;
-    final etaMinutes = distance / (avgSpeed * 60);
+      // Assume realistic average speed ~25 km/h (≈ 6.94 m/s)
+      final avgSpeed = 6.94;
+      final etaMinutes = distance / (avgSpeed * 60);
 
-    String status;
-    if (distance < 25) {
-      status = "✅ Arrived at destination";
-    } else if (distance < 120) {
-      status = "🟢 Arriving Soon (${etaMinutes.toStringAsFixed(1)} min)";
-    } else {
-      status = "🕓 ETA ${etaMinutes.toStringAsFixed(1)} min";
-    }
-
-    if (mounted) {
-      setState(() {
-        _etaStopName = fromStop;
-        _etaFromStop = busName;
-        _etaStatus = status;
-      });
-    }
-  });
-}
-
+      String status;
+      if (distance < 25) {
+        // Bus has arrived
+        status = loc.statusArrived;
+      } else if (distance < 120) {
+        // Bus arriving soon (within 120m)
+        status = loc.statusArrivingSoon(etaMinutes.toStringAsFixed(1));
+      } else {
+        // Estimated time of arrival for farther distances
+        status = loc.statusETA(etaMinutes.toStringAsFixed(1));
+      }
+      if (mounted) {
+        setState(() {
+          _etaStopName = fromStop;
+          _etaFromStop = busName;
+          _etaStatus = status;
+        });
+      }
+    });
+  }
 
   // ---------------- TRANSIT POPUP ----------------
-  void _showTransitPopup(BuildContext context, String fromBus, String toBus, String stop) {
+  void _showTransitPopup(
+      BuildContext context, String fromBus, String toBus, String stop) {
+    final loc = AppLocalizations.of(context)!;
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -536,29 +604,48 @@ void _startEtaTimer(String busName, double stopLat, double stopLng, String fromS
           child: Container(
             padding: const EdgeInsets.all(20),
             color: Colors.white.withOpacity(0.95),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.transfer_within_a_station,
-                  color: Colors.deepPurple, size: 44),
-              const SizedBox(height: 12),
-              const Text("Transit Required",
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.transfer_within_a_station,
+                  color: Colors.deepPurple,
+                  size: settings.iconSize * 1.5, // scalable icon
+                ),
+                SizedBox(height: settings.fontSize * 0.6),
+                Text(
+                  loc.transitRequired, // localized
                   style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                      color: Colors.deepPurple)),
-              const SizedBox(height: 8),
-              Text(
-                "Drop off at $stop and walk (~5 min) to continue your journey.\n\nExtra Fare: BND 1.00",
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 15, color: Colors.black87),
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style:
-                    ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
-                child: const Text("Close", style: TextStyle(color: Colors.white)),
-              ),
-            ]),
+                    fontWeight: FontWeight.bold,
+                    fontSize: settings.fontSize * 1.2,
+                    color: Colors.deepPurple,
+                  ),
+                ),
+                SizedBox(height: settings.fontSize * 0.4),
+                Text(
+                  loc.transitDescription(stop), // localized with placeholder
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: settings.fontSize,
+                    color: Colors.black87,
+                  ),
+                ),
+                SizedBox(height: settings.fontSize * 0.6),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                  ),
+                  child: Text(
+                    loc.close, // localized
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: settings.fontSize,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -571,69 +658,68 @@ void _startEtaTimer(String busName, double stopLat, double stopLng, String fromS
     final markers = <Marker>[];
 
     // Bus icons (make tappable)
-_busPositions.forEach((id, pos) {
-  final info = _busInfo[id];
-  final color = id == "BUS001" ? Colors.red : Colors.blue;
+    _busPositions.forEach((id, pos) {
+      final info = _busInfo[id];
+      final color = id == "BUS001" ? Colors.red : Colors.blue;
 
-  markers.add(Marker(
-    width: 120,
-    height: 120,
-    point: pos,
-    child: GestureDetector(
-      onTap: () {
-        if (info != null) _showBusInfoPopup(context, info);
-      },
-      child: _FloatingBusMarker(busName: info?.name ?? id, color: color),
-    ),
-  ));
-});
+      markers.add(Marker(
+        width: 120,
+        height: 120,
+        point: pos,
+        child: GestureDetector(
+          onTap: () {
+            if (info != null) _showBusInfoPopup(context, info);
+          },
+          child: _FloatingBusMarker(busName: info?.name ?? id, color: color),
+        ),
+      ));
+    });
 
 // Bus stops numbered (make tappable)
-int index = 1;
-for (var s in _firebaseStops) {
-  markers.add(Marker(
-    width: 50,
-    height: 65,
-    point: LatLng(s.lat, s.lng),
-    child: GestureDetector(
-      onTap: () => _showStopInfoPopup(context, s),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: const BoxDecoration(
-              color: Colors.blue,
-              shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
-            ),
-            child: const Icon(Icons.directions_bus, color: Colors.white, size: 22),
-          ),
-          Container(
-            margin: const EdgeInsets.only(top: 2),
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: Colors.black87,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              index.toString(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
+    int index = 1;
+    for (var s in _firebaseStops) {
+      markers.add(Marker(
+        width: 50,
+        height: 65,
+        point: LatLng(s.lat, s.lng),
+        child: GestureDetector(
+          onTap: () => _showStopInfoPopup(context, s),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: Colors.blue,
+                  shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                ),
+                child: const Icon(Icons.directions_bus,
+                    color: Colors.white, size: 22),
               ),
-            ),
+              Container(
+                margin: const EdgeInsets.only(top: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.black87,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  index.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    ),
-  ));
-  index++;
-}
-
-
+        ),
+      ));
+      index++;
+    }
 
     // User location marker
     if (_devicePosition != null) {
@@ -656,42 +742,49 @@ for (var s in _firebaseStops) {
           mapController: mapController,
           options: MapOptions(initialCenter: center, initialZoom: 13),
           children: [
-            TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+            TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
             PolylineLayer(polylines: [
-              Polyline(points: _routeA, color: Colors.deepPurple, strokeWidth: 5),
-              Polyline(points: _walkLine, color: Colors.orange, strokeWidth: 3, isDotted: true),
+              Polyline(
+                  points: _routeA, color: Colors.deepPurple, strokeWidth: 5),
+              Polyline(
+                  points: _walkLine,
+                  color: Colors.orange,
+                  strokeWidth: 3,
+                  isDotted: true),
               Polyline(points: _routeB, color: Colors.teal, strokeWidth: 5),
             ]),
             MarkerLayer(markers: markers),
           ],
         ),
         if (_etaStopName != null)
-  Positioned(
-    left: 0,
-    right: 0,
-    bottom: 65,
-    child: _EtaCard(
-      stop: _etaStopName!,
-      from: _etaFromStop!,
-      status: _etaStatus,
-      onTap: () => _showEtaDetailsPopup(context),
-    ),
-  ),
-
-Positioned(
-  bottom: 0,
-  left: 0,
-  right: 0,
-  child: _buildBottomSearch(context), // ✅ bring back search bar
-),
-
-
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 65,
+            child: _EtaCard(
+              stop: _etaStopName!,
+              from: _etaFromStop!,
+              status: _etaStatus,
+              onTap: () => _showEtaDetailsPopup(context),
+            ),
+          ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: _buildBottomSearch(context), // ✅ bring back search bar
+        ),
       ]),
     );
   }
 
   Widget _buildBottomSearch(BuildContext context) {
     final stops = _firebaseStops.map((s) => s.name).toSet().toList();
+    final loc = AppLocalizations.of(context)!;
+    final settings = Provider.of<SettingsProvider>(context);
+    final double fontSize = settings.fontSize; // if your provider uses fontSize
+
     return Container(
       color: const Color(0xFF0B1B4D),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -700,11 +793,21 @@ Positioned(
           child: DropdownButton<String>(
             value: _selectedFromStop,
             dropdownColor: const Color(0xFF0B1B4D),
-            hint: Text(AppLocalizations.of(context)!.from,
-                style: const TextStyle(color: Colors.white)),
-            style: const TextStyle(color: Colors.white),
+            hint: Text(
+              AppLocalizations.of(context)!.from,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: Provider.of<SettingsProvider>(context).fontSize,
+              ),
+            ),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: Provider.of<SettingsProvider>(context).fontSize,
+            ),
             isExpanded: true,
-            items: stops.map((n) => DropdownMenuItem(value: n, child: Text(n))).toList(),
+            items: stops
+                .map((n) => DropdownMenuItem(value: n, child: Text(n)))
+                .toList(),
             onChanged: (v) => setState(() => _selectedFromStop = v),
           ),
         ),
@@ -713,15 +816,27 @@ Positioned(
           child: DropdownButton<String>(
             value: _selectedToStop,
             dropdownColor: const Color(0xFF0B1B4D),
-            hint: Text(AppLocalizations.of(context)!.to,
-                style: const TextStyle(color: Colors.white)),
-            style: const TextStyle(color: Colors.white),
+            hint: Text(
+              AppLocalizations.of(context)!.to,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: Provider.of<SettingsProvider>(context).font,
+              ),
+            ),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: Provider.of<SettingsProvider>(context).font,
+            ),
             isExpanded: true,
-            items: stops.map((n) => DropdownMenuItem(value: n, child: Text(n))).toList(),
+            items: stops
+                .map((n) => DropdownMenuItem(value: n, child: Text(n)))
+                .toList(),
             onChanged: (v) => setState(() => _selectedToStop = v),
           ),
         ),
-        IconButton(icon: const Icon(Icons.search, color: Colors.white), onPressed: _generateDropdownRoute)
+        IconButton(
+            icon: const Icon(Icons.search, color: Colors.white),
+            onPressed: _generateDropdownRoute)
       ]),
     );
   }
@@ -739,10 +854,13 @@ class _EtaCard extends StatelessWidget {
     required this.onTap, // 👈 new line added
   });
 
+  @override
+  Widget build(BuildContext context) {
+    final settings = Provider.of<SettingsProvider>(context);
+    final loc = AppLocalizations.of(context)!;
 
-@override
-Widget build(BuildContext context) => GestureDetector(
-      onTap: onTap, // 👈 use callback instead of _showEtaDetailsPopup(context)
+    return GestureDetector(
+      onTap: onTap, // use callback
 
       child: Center(
         child: ClipRRect(
@@ -762,19 +880,29 @@ Widget build(BuildContext context) => GestureDetector(
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(stop,
-                          style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Text(status,
-                          style: const TextStyle(
-                              fontSize: 14, color: Colors.white70)),
+                      Text(
+                        stop, // you could also localize: loc.stopName(stop)
+                        style: TextStyle(
+                          fontSize: settings.fontSize * 1.1,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: settings.fontSize * 0.2),
+                      Text(
+                        status, // make sure status is localized before passing
+                        style: TextStyle(
+                          fontSize: settings.fontSize,
+                          color: Colors.white70,
+                        ),
+                      ),
                     ],
                   ),
-                  const Icon(Icons.directions_bus,
-                      color: Colors.white, size: 28),
+                  Icon(
+                    Icons.directions_bus,
+                    color: Colors.white,
+                    size: settings.iconSize,
+                  ),
                 ],
               ),
             ),
@@ -782,7 +910,7 @@ Widget build(BuildContext context) => GestureDetector(
         ),
       ),
     );
-
+  }
 }
 
 // ---------------- DATA MODELS ----------------
@@ -811,7 +939,6 @@ class StopData {
   });
 }
 
-// ---------------- FLOATING BUS MARKER ----------------
 class _FloatingBusMarker extends StatefulWidget {
   final String busName;
   final Color color;
@@ -844,6 +971,9 @@ class _FloatingBusMarkerState extends State<_FloatingBusMarker>
 
   @override
   Widget build(BuildContext context) {
+    final settings = Provider.of<SettingsProvider>(context);
+    final loc = AppLocalizations.of(context)!;
+
     return AnimatedBuilder(
       animation: _anim,
       builder: (_, __) {
@@ -852,8 +982,10 @@ class _FloatingBusMarkerState extends State<_FloatingBusMarker>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Bus name container
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: widget.color,
                   borderRadius: BorderRadius.circular(16),
@@ -866,15 +998,18 @@ class _FloatingBusMarkerState extends State<_FloatingBusMarker>
                   ],
                 ),
                 child: Text(
-                  widget.busName,
-                  style: const TextStyle(
+                  widget.busName, // localize: loc.busName(widget.busName)
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 13,
+                    fontSize: settings.fontSize * 0.9,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              const SizedBox(height: 5),
+
+              SizedBox(height: settings.fontSize * 0.4),
+
+              // Bus icon container
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -887,9 +1022,12 @@ class _FloatingBusMarkerState extends State<_FloatingBusMarker>
                     ),
                   ],
                 ),
-                padding: const EdgeInsets.all(6),
-                child: Icon(Icons.directions_bus,
-                    color: widget.color, size: 30),
+                padding: EdgeInsets.all(settings.iconSize * 0.4),
+                child: Icon(
+                  Icons.directions_bus,
+                  color: widget.color,
+                  size: settings.iconSize,
+                ),
               ),
             ],
           ),

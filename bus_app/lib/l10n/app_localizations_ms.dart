@@ -211,4 +211,52 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get duration_10_20 => 'Anggaran 10–20 minit bagi setiap hentian';
+
+  @override
+  String get close => 'Tutup';
+
+  @override
+  String get bus => 'Bas';
+
+  @override
+  String get scheduledTime => 'Waktu Jadual';
+
+  @override
+  String get nextStop => 'Perhentian Seterusnya';
+
+  @override
+  String get status => 'Kedudukan';
+
+  @override
+  String get unknown => 'Tidak diketahui';
+
+  @override
+  String get busFeatures => 'Ciri-ciri Bas';
+
+  @override
+  String get routeKianggehYayasan => 'Kianggeh → Yayasan Complex';
+
+  @override
+  String get routeYayasanKianggeh => 'Yayasan Complex → Kianggeh';
+
+  @override
+  String get transitRequired => 'Perlu Transit';
+
+  @override
+  String transitDescription(Object stop) {
+    return 'Turun di $stop dan berjalan (~5 min) untuk meneruskan perjalanan anda.\n\nTambahan Tambang: BND 1.00';
+  }
+
+  @override
+  String get statusArrived => '✅ Telah sampai destinasi';
+
+  @override
+  String statusArrivingSoon(Object minutes) {
+    return '🟢 Sedang menghampiri ($minutes minit)';
+  }
+
+  @override
+  String statusETA(Object minutes) {
+    return '🕓 Jangkaan tiba $minutes minit';
+  }
 }

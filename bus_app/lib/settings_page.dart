@@ -89,16 +89,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         DropdownMenuItem(
                             value: 24, child: Text(loc.medium)), // ✅ Localized
                         DropdownMenuItem(
-                            value: 30, child: Text(loc.large)), // ✅ Localized
+                            value: 36, child: Text(loc.large)), // ✅ Localized
                       ],
                       onChanged: (val) => settings.changeIconSize(val!),
-                    ),
-                  ),
-                  ListTile(
-                    title: Text(loc.mode), // ✅ Localized
-                    trailing: Switch(
-                      value: settings.isDarkMode,
-                      onChanged: settings.toggleDarkMode,
                     ),
                   ),
                 ],

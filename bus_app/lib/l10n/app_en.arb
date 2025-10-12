@@ -20,7 +20,6 @@
   "view": "View",
   "appName": "BasKu",
   "home": "Home",
-  "settings": "Settings",
   "listForm": "List Form",
   "mapForm": "Map Form",
   "from": "From",
@@ -31,7 +30,7 @@
   "totalFare": "Total Fare",
   "back": "Back",
   "viewBus": "View Bus",
-   "busRoute": "Bus Route",
+  "busRoute": "Bus Route",
   "nextBus": "Next Bus",
   "viewMap": "View Map",
   "arrived": "Arrived",
@@ -44,7 +43,7 @@
   "offlineMap": "Offline Map",
   "offlineSystemMap": "Offline System Map",
   "offlineBusSchedule": "Offline Bus Schedule",
-    "adults": "Adults",
+  "adults": "Adults",
   "childrenSeniors": "Children / Seniors",
   "schedule": "Schedule",
   "features": "Features",
@@ -56,20 +55,39 @@
   "arriveAtKianggehAt": "Arrive at Kianggeh at",
   "transferToBusBAtKianggeh": "Transfer to Bus B at Kianggeh",
   "continueToYayasanOrMoF": "Continue to Yayasan Complex or Ministry of Finance",
-
   "takeBusBToKianggeh": "Take Bus B to Kianggeh",
   "transferToBusAAtTheMall": "Transfer to Bus A at The Mall Gadong",
   "continueToPBSchoolOrMall": "Continue to PB School, Ong Sum Ping, or loop at The Mall Gadong",
-   "transitInfo": "Transit Info",
-   
+  "transitInfo": "Transit Info",
   "busPrefix": "Bus",
   "wifi": "Wi-Fi",
   "aircond": "Air Conditioning",
   "wheelchairLifts": "Wheelchair Lifts",
   "wheelchairSpace": "Wheelchair Space",
-  
   "duration_5_10": "Estimated 5–10 minutes for each stop",
   "duration_5_15": "Estimated 5–15 minutes for each stop",
   "duration_10_15": "Estimated 10–15 minutes for each stop",
-  "duration_10_20": "Estimated 10–20 minutes for each stop"
+  "duration_10_20": "Estimated 10–20 minutes for each stop",
+  "close": "Close",
+  "bus": "Bus",
+  "scheduledTime": "Scheduled Time",
+  "nextStop": "Next Stop",
+  "status": "Status",
+  "unknown": "Unknown",
+  "busFeatures": "Bus Features",
+  "routeKianggehYayasan": "Kianggeh → Yayasan Complex",
+  "routeYayasanKianggeh": "Yayasan Complex → Kianggeh",
+  "transitRequired": "Transit Required",
+  "transitDescription": "Drop off at {stop} and walk (~5 min) to continue your journey.\n\nExtra Fare: BND 1.00",
+  "statusArrived": "✅ Arrived at destination",
+  "statusArrivingSoon": "🟢 Arriving Soon ({minutes} min)",
+  "@statusArrivingSoon": {
+    "description": "Bus is arriving soon",
+    "placeholders": { "minutes": {} }
+  },
+  "statusETA": "🕓 ETA {minutes} min",
+  "@statusETA": {
+    "description": "Estimated time of arrival",
+    "placeholders": { "minutes": {} }
+  }
 }

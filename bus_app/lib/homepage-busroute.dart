@@ -337,6 +337,18 @@ class _BusRoutePageState extends State<BusRoutePage>
     return (distanceMeters / speedMps / 60).round();
   }
 
+  Color getStatusColor(String key) {
+  switch (key) {
+    case 'arrived':
+      return Colors.green; // 🟩 for Arrived / Tiba
+    case 'passed':
+      return Colors.grey;  // 🩶 for Passed / Berlalu
+    case 'upcoming':
+    default:
+      return Colors.orange; // 🟧 for Upcoming / Akan tiba
+  }
+}
+
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
@@ -516,27 +528,39 @@ class _BusRoutePageState extends State<BusRoutePage>
     }
 
     // Determine status: Passed / Arrived / Upcoming
-    String status = AppLocalizations.of(context)!.upcoming;
-    if (busLat != null && busLng != null) {
-      double distanceToStop =
-          _calculateDistance(busLat, busLng, stop.lat, stop.lng);
-      if (distanceToStop <= 90) {
-        status = AppLocalizations.of(context)!.arrived; // 👈 localized
-      } else {
-        // Check if bus has passed this stop (any previous stop within 10m)
-        bool passed = false;
-        for (int i = 0; i < index; i++) {
-          double distPrev = _calculateDistance(
-              busLat, busLng, stopsList[i].lat, stopsList[i].lng);
-          if (distPrev <= 10) {
-            passed = true;
-            break;
-          }
-        }
-        if (passed)
-          status = AppLocalizations.of(context)!.passed; // 👈 localized
+    // Use internal key for color logic, and localized text for display
+String statusKey = 'upcoming';
+String status = AppLocalizations.of(context)!.upcoming;
+
+if (busLat != null && busLng != null) {
+  double distanceToStop =
+      _calculateDistance(busLat, busLng, stop.lat, stop.lng);
+
+  if (distanceToStop <= 90) {
+    // Bus has arrived
+    statusKey = 'arrived';
+    status = AppLocalizations.of(context)!.arrived;
+  } else {
+    // Check if bus passed previous stops
+    bool passed = false;
+    for (int i = 0; i < index; i++) {
+      double distPrev = _calculateDistance(
+          busLat, busLng, stopsList[i].lat, stopsList[i].lng);
+      if (distPrev <= 10) {
+        passed = true;
+        break;
       }
     }
+
+    if (passed) {
+      statusKey = 'passed';
+      status = AppLocalizations.of(context)!.passed;
+    } else {
+      statusKey = 'upcoming';
+      status = AppLocalizations.of(context)!.upcoming;
+    }
+  }
+}
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -622,25 +646,16 @@ class _BusRoutePageState extends State<BusRoutePage>
                     // Status box (no pulsating animation)
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: status == "Arrived"
-                              ? Colors.green.withOpacity(0.2)
-                              : status == "Passed"
-                                  ? Colors.red.withOpacity(0.2)
-                                  : Colors.orange.withOpacity(0.2),
+                          color: getStatusColor(statusKey).withOpacity(0.2),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          status,
+                          status, // localized text shown to user
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: status == "Arrived"
-                                ? Colors.green
-                                : status == "Passed"
-                                    ? Colors.red
-                                    : Colors.orange,
+                            color: getStatusColor(statusKey),
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),

@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 
 class SettingsProvider extends ChangeNotifier {
-  // Theme
-  bool isDarkMode = false;
-
   // Language
   Locale _locale = const Locale('en');
   Locale get locale => _locale;
@@ -12,10 +9,7 @@ class SettingsProvider extends ChangeNotifier {
   double fontSize = 14;
   double iconSize = 24;
 
-  void toggleDarkMode(bool value) {
-    isDarkMode = value;
-    notifyListeners();
-  }
+  double get font => fontSize;
 
   void changeLanguage(String langCode) {
     // ✅ Ensure only supported locales are used

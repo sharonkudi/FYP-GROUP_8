@@ -20,13 +20,12 @@
   "view": "Lihat",
   "appName": "BasKu",
   "home": "Utama",
-  "settings": "Tetapan",
   "listForm": "Borang Senarai",
   "mapForm": "Borang Peta",
   "from": "Dari",
   "to": "Ke",
   "availableBuses": "Bas Tersedia",
-  "available" : "Tersedia",
+  "available": "Tersedia",
   "fareEstimator": "Penganggar Tambang",
   "totalFare": "Jumlah Tambang",
   "back": "Kembali",
@@ -41,10 +40,10 @@
   "offlineViewMessage": "Sila semak sambungan anda atau teruskan dengan paparan luar talian.",
   "retry": "Cuba Semula",
   "viewOfflineMap": "Lihat Peta Sistem Luar Talian",
-   "offlineMap": "Peta Luar Talian",
+  "offlineMap": "Peta Luar Talian",
   "offlineSystemMap": "Peta Sistem Luar Talian",
   "offlineBusSchedule": "Jadual Bas Luar Talian",
-   "adults": "Dewasa",
+  "adults": "Dewasa",
   "childrenSeniors": "Kanak-kanak / Warga Emas",
   "schedule": "Jadual",
   "features": "Ciri-ciri",
@@ -56,20 +55,44 @@
   "arriveAtKianggehAt": "Tiba di Kianggeh pada",
   "transferToBusBAtKianggeh": "Tukar ke Bas B di Kianggeh",
   "continueToYayasanOrMoF": "Teruskan ke Kompleks Yayasan atau Kementerian Kewangan",
-
   "takeBusBToKianggeh": "Naik Bas B ke Kianggeh",
   "transferToBusAAtTheMall": "Tukar ke Bas A di The Mall Gadong",
   "continueToPBSchoolOrMall": "Teruskan ke Sekolah PB, Ong Sum Ping, atau pusing di The Mall Gadong",
-   "transitInfo": "Maklumat Transit",
-   
+  "transitInfo": "Maklumat Transit",
+
   "busPrefix": "Bas",
   "wifi": "Wi-Fi",
   "aircond": "Penyaman Udara",
   "wheelchairLifts": "Lif Kerusi Roda",
   "wheelchairSpace": "Ruang Kerusi Roda",
-  
+
   "duration_5_10": "Anggaran 5–10 minit bagi setiap hentian",
   "duration_5_15": "Anggaran 5–15 minit bagi setiap hentian",
   "duration_10_15": "Anggaran 10–15 minit bagi setiap hentian",
-  "duration_10_20": "Anggaran 10–20 minit bagi setiap hentian"
+  "duration_10_20": "Anggaran 10–20 minit bagi setiap hentian",
+
+  "close": "Tutup",
+  "bus": "Bas",
+  "scheduledTime": "Waktu Jadual",
+  "nextStop": "Perhentian Seterusnya",
+  "status": "Kedudukan",
+  "unknown": "Tidak diketahui",
+  "busFeatures": "Ciri-ciri Bas",
+  "routeKianggehYayasan": "Kianggeh → Yayasan Complex",
+  "routeYayasanKianggeh": "Yayasan Complex → Kianggeh",
+
+  "transitRequired": "Perlu Transit",
+  "transitDescription": "Turun di {stop} dan berjalan (~5 min) untuk meneruskan perjalanan anda.\n\nTambahan Tambang: BND 1.00",
+
+  "statusArrived": "✅ Telah sampai destinasi",
+  "statusArrivingSoon": "🟢 Sedang menghampiri ({minutes} minit)",
+  "@statusArrivingSoon": {
+    "description": "Bas hampir sampai",
+    "placeholders": { "minutes": {} }
+  },
+  "statusETA": "🕓 Jangkaan tiba {minutes} minit",
+  "@statusETA": {
+    "description": "Anggaran masa ketibaan",
+    "placeholders": { "minutes": {} }
+  }
 }

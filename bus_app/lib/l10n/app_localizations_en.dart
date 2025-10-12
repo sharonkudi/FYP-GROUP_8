@@ -211,4 +211,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get duration_10_20 => 'Estimated 10–20 minutes for each stop';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get bus => 'Bus';
+
+  @override
+  String get scheduledTime => 'Scheduled Time';
+
+  @override
+  String get nextStop => 'Next Stop';
+
+  @override
+  String get status => 'Status';
+
+  @override
+  String get unknown => 'Unknown';
+
+  @override
+  String get busFeatures => 'Bus Features';
+
+  @override
+  String get routeKianggehYayasan => 'Kianggeh → Yayasan Complex';
+
+  @override
+  String get routeYayasanKianggeh => 'Yayasan Complex → Kianggeh';
+
+  @override
+  String get transitRequired => 'Transit Required';
+
+  @override
+  String transitDescription(Object stop) {
+    return 'Drop off at $stop and walk (~5 min) to continue your journey.\n\nExtra Fare: BND 1.00';
+  }
+
+  @override
+  String get statusArrived => '✅ Arrived at destination';
+
+  @override
+  String statusArrivingSoon(Object minutes) {
+    return '🟢 Arriving Soon ($minutes min)';
+  }
+
+  @override
+  String statusETA(Object minutes) {
+    return '🕓 ETA $minutes min';
+  }
 }

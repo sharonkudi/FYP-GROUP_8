@@ -7,7 +7,12 @@ import 'package:intl/intl.dart';
 
 class AvailableBusesPage extends StatefulWidget {
   final String busStopName;
-  const AvailableBusesPage({super.key, required this.busStopName});
+  final List<String> assignedBuses;
+  const AvailableBusesPage({
+    super.key,
+    required this.busStopName,
+    required this.assignedBuses, // 👈 Add this
+  });
 
   @override
   State<AvailableBusesPage> createState() => _AvailableBusesPageState();
@@ -130,15 +135,27 @@ class _AvailableBusesPageState extends State<AvailableBusesPage> {
                     'duration': data['duration'] ?? 'N/A',
                     'assignedTo': data['assignedTo'] ?? '',
                     'features': features,
+                    'stops': stops,
                   };
                 }).toList();
+
+final stop = widget.busStopName.trim().toLowerCase();
+
+final filteredBuses = buses.where((bus) {
+  final busStops = (bus['stops'] as List<dynamic>? ?? [])
+      .map((s) => s['name'].toString().trim().toLowerCase())
+      .toList();
+
+  // include this bus if the stop exists in its stops list
+  return busStops.contains(stop);
+}).toList();
 
                 return RefreshIndicator(
                   onRefresh: _refreshBuses,
                   child: ListView.builder(
-                    itemCount: buses.length,
-                    itemBuilder: (context, index) {
-                      final bus = buses[index];
+  itemCount: filteredBuses.length,
+  itemBuilder: (context, index) {
+    final bus = filteredBuses[index];
                       return GestureDetector(
                         onTap: () {
                           showModalBottomSheet(

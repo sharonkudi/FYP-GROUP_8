@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 
 /// Simple splash screen that waits [duration], checks connectivity,
 /// then calls [onFinish] with true/false (hasInternet).
@@ -30,12 +29,8 @@ class _SplashScreenState extends State<SplashScreen> {
     // keep splash visible for the configured duration
     await Future.delayed(widget.duration);
 
-    // check connectivity
-    final status = await Connectivity().checkConnectivity();
-    final hasInternet = status != ConnectivityResult.none;
-
     if (!mounted) return;
-    widget.onFinish(hasInternet);
+    widget.onFinish(true);
   }
 
   @override

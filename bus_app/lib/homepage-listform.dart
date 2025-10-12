@@ -2,7 +2,6 @@ import 'dart:async';
 import 'homepage-availablebuses.dart';
 import 'package:bus_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:bus_app/no_internet_page.dart';
 import 'package:geolocator/geolocator.dart';
 
 class ListFormPage extends StatefulWidget {
@@ -32,7 +31,7 @@ class _ListFormPageState extends State<ListFormPage>
     {'name': 'Kianggeh', 'lat': 4.8892108308087385, 'lng': 114.94433682090414},
     {'name': 'Ong Sum Ping', 'lat': 4.90414222577477, 'lng': 114.93627988813594},
     {'name': 'PB School', 'lat': 4.904922563115028, 'lng': 114.9332865430959},
-    {'name': 'Ministry of Finance', 'lat': 4.915056711681162, 'lng': 114.95226715214645},
+    {'name': 'Ministry of Finance', 'lat': 4.868942, 'lng': 114.903128},
   ];
 
   final Map<String, List<String>> stopGroups = {
@@ -358,16 +357,39 @@ void dispose() {
                   name: name,
                   distance: distanceText,
                   onView: isNearby
-                      ? () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  AvailableBusesPage(busStopName: name),
-                            ),
-                          );
-                        }
-                      : null,
+    ? () {
+        // Determine which buses serve this stop
+        List<String> assignedBuses = [];
+
+        // Group A stops → BUS001
+        const groupA = [
+          'The Mall Gadong',
+          'Ong Sum Ping',
+          'PB School',
+          'Kianggeh'
+        ];
+
+        // Group B stops → BUS002
+        const groupB = [
+          'Kianggeh',
+          'Yayasan Complex',
+          'Ministry of Finance'
+        ];
+
+        if (groupA.contains(name)) assignedBuses.add('BUS001');
+        if (groupB.contains(name)) assignedBuses.add('BUS002');
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AvailableBusesPage(
+              busStopName: name,
+              assignedBuses: assignedBuses, // 👈 new parameter
+            ),
+          ),
+        );
+      }
+    : null,
                 );
               },
             ),

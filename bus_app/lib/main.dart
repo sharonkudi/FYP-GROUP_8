@@ -1,12 +1,11 @@
+import 'dart:async';
 import 'package:bus_app/home.dart';
 import 'package:bus_app/l10n/app_localizations.dart';
-import 'package:bus_app/no_internet_page.dart';
 import 'package:bus_app/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'homepage-listform.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'package/bus_app/OfflineMapPage.dart';
 
 // ✅ Settings + Provider
 import 'package:provider/provider.dart';
@@ -17,10 +16,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 // ✅ Added
 import 'splash_screen.dart'; // 👈 NEW
-
-// ✅ Connectivity
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'dart:async';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,35 +38,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  bool _hasInternet = true;
   bool _splashDone = false;
-  StreamSubscription? _connectivitySubscription;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkInitialConnection();
-
-    _connectivitySubscription =
-        Connectivity().onConnectivityChanged.listen((status) {
-      setState(() {
-        _hasInternet = status != ConnectivityResult.none;
-      });
-    });
-  }
-
-  Future<void> _checkInitialConnection() async {
-    final status = await Connectivity().checkConnectivity();
-    setState(() {
-      _hasInternet = status != ConnectivityResult.none;
-    });
-  }
-
-  @override
-  void dispose() {
-    _connectivitySubscription?.cancel();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,23 +48,20 @@ class _MyAppState extends State<MyApp> {
           title: 'Bus App',
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
-            brightness:
-                settings.isDarkMode ? Brightness.dark : Brightness.light,
+            brightness: Brightness.light, // ✅ Always light mode now
             textTheme: Theme.of(context).textTheme.apply(
                   fontSizeFactor: settings.fontSize / 14,
-                  bodyColor: settings.isDarkMode ? Colors.white : Colors.black,
-                  displayColor:
-                      settings.isDarkMode ? Colors.white : Colors.black,
+                  bodyColor: Colors.black,
+                  displayColor: Colors.black,
                 ),
             iconTheme: IconThemeData(
               size: settings.iconSize,
-              color: settings.isDarkMode ? Colors.white : Colors.black,
+              color: Colors.black,
             ),
             elevatedButtonTheme: ElevatedButtonThemeData(
               style: ElevatedButton.styleFrom(
                 foregroundColor: Colors.white,
-                backgroundColor:
-                    settings.isDarkMode ? Colors.blueGrey : Colors.blue,
+                backgroundColor: Colors.blue,
               ),
             ),
             primarySwatch: Colors.blue,
@@ -108,31 +72,22 @@ class _MyAppState extends State<MyApp> {
             Locale('ms'),
           ],
           localizationsDelegates: const [
-            AppLocalizations.delegate, // ✅ Added
+            AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          // 👇 Show HomePage if online, NoInternetPage if offline
+          // 👇 Only SplashScreen, then HomePage
           home: !_splashDone
               ? SplashScreen(
                   duration: const Duration(seconds: 2),
-                  onFinish: (hasInternet) {
+                  onFinish: (_) {
                     setState(() {
                       _splashDone = true;
-                      _hasInternet = hasInternet;
                     });
                   },
                 )
-              : (_hasInternet
-                  ? const HomePage()
-                  : NoInternetPage(
-                      onRetry: () async {
-                        await _checkInitialConnection(); // re-check from _MyAppState
-                        setState(() {});
-                      },
-                      onOfflineView: () {},
-                    )),
+              : const HomePage(),
         );
       },
     );

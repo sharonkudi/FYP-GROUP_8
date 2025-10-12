@@ -499,6 +499,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Estimated 10–20 minutes for each stop'**
   String get duration_10_20;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @bus.
+  ///
+  /// In en, this message translates to:
+  /// **'Bus'**
+  String get bus;
+
+  /// No description provided for @scheduledTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled Time'**
+  String get scheduledTime;
+
+  /// No description provided for @nextStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Next Stop'**
+  String get nextStop;
+
+  /// No description provided for @status.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get status;
+
+  /// No description provided for @unknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get unknown;
+
+  /// No description provided for @busFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Bus Features'**
+  String get busFeatures;
+
+  /// No description provided for @routeKianggehYayasan.
+  ///
+  /// In en, this message translates to:
+  /// **'Kianggeh → Yayasan Complex'**
+  String get routeKianggehYayasan;
+
+  /// No description provided for @routeYayasanKianggeh.
+  ///
+  /// In en, this message translates to:
+  /// **'Yayasan Complex → Kianggeh'**
+  String get routeYayasanKianggeh;
+
+  /// No description provided for @transitRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Transit Required'**
+  String get transitRequired;
+
+  /// No description provided for @transitDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop off at {stop} and walk (~5 min) to continue your journey.\n\nExtra Fare: BND 1.00'**
+  String transitDescription(Object stop);
+
+  /// No description provided for @statusArrived.
+  ///
+  /// In en, this message translates to:
+  /// **'✅ Arrived at destination'**
+  String get statusArrived;
+
+  /// Bus is arriving soon
+  ///
+  /// In en, this message translates to:
+  /// **'🟢 Arriving Soon ({minutes} min)'**
+  String statusArrivingSoon(Object minutes);
+
+  /// Estimated time of arrival
+  ///
+  /// In en, this message translates to:
+  /// **'🕓 ETA {minutes} min'**
+  String statusETA(Object minutes);
 }
 
 class _AppLocalizationsDelegate
