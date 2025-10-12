@@ -59,7 +59,7 @@ class MapPageState extends State<MapFormPage> {
       setState(() => _devicePosition = currentLatLng);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         try {
-          mapController.move(currentLatLng, mapController.zoom);
+          mapController.move(currentLatLng, mapController.camera.zoom);
         } catch (_) {}
       });
     });

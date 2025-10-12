@@ -1,0 +1,61 @@
+name: bus_app
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.6.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  photo_view: ^0.15.0
+  open_route_service: ^1.2.7
+
+  # Cupertino icons
+  cupertino_icons: ^1.0.8
+
+  # Firebase
+  firebase_core: ^2.32.0
+  cloud_firestore: ^4.17.5
+  firebase_database: ^10.5.7
+
+  # Geolocation and mapping
+  geolocator: ^11.1.0
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.1
+
+  # State management
+  provider: ^6.1.2
+
+  # Localization
+  flutter_localizations:
+    sdk: flutter
+
+  # Connectivity
+  connectivity_plus: ^4.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+  - lib/l10n/
+  - assets/offline_map.png
+  - assets/logoAsset.png
+  - assets/offline_busses.json
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/bus.png"
+  adaptive_icon_background: "#FFFFFF"   # background color for Android adaptive icon
+  adaptive_icon_foreground: "assets/bus.png" # optional

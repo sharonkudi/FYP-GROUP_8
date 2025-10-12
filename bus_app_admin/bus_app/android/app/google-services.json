@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "97951007463",
+    "firebase_url": "https://basku-bn-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "basku-bn",
+    "storage_bucket": "basku-bn.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:97951007463:android:5eb30b037e895dbbd79842",
+        "android_client_info": {
+          "package_name": "com.example.bus_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6MtlfgBJ22B5zjEVs1QJ5u1yd2u6_a1s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:97951007463:android:20df4a5951ed31f7d79842",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6MtlfgBJ22B5zjEVs1QJ5u1yd2u6_a1s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:97951007463:android:9192de9f99eb7074d79842",
+        "android_client_info": {
+          "package_name": "com.example.smart_bus_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6MtlfgBJ22B5zjEVs1QJ5u1yd2u6_a1s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
