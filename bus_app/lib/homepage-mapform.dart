@@ -625,8 +625,8 @@ void _startEtaTimer(
     if (isAtStop) {
       // ✅ Still at stop — hold ETA near 0.1
       etaNextMin = 0.1;
-      status =
-          "🟢 Arrived at ${currentStop['name']} (~${etaNextMin.toStringAsFixed(1)} min)";
+      status = "🟢 Arrived at ${currentStop['name']} (1 min)";
+
       displayStop = nextStop['name'];
     } else if (etaNextMin <= 1.5) {
       status =
