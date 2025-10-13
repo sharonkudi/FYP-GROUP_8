@@ -512,6 +512,18 @@ abstract class AppLocalizations {
   /// **'Bus'**
   String get bus;
 
+  /// No description provided for @busA.
+  ///
+  /// In en, this message translates to:
+  /// **'Bus A'**
+  String get busA;
+
+  /// No description provided for @busB.
+  ///
+  /// In en, this message translates to:
+  /// **'Bus B'**
+  String get busB;
+
   /// No description provided for @scheduledTime.
   ///
   /// In en, this message translates to:
@@ -565,6 +577,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Drop off at {stop} and walk (~5 min) to continue your journey.\n\nExtra Fare: BND 1.00'**
   String transitDescription(Object stop);
+
+  /// No description provided for @locating.
+  ///
+  /// In en, this message translates to:
+  /// **'Locating...'**
+  String get locating;
+
+  /// No description provided for @metersAway.
+  ///
+  /// In en, this message translates to:
+  /// **'m away'**
+  String get metersAway;
+
+  /// No description provided for @kilometersAway.
+  ///
+  /// In en, this message translates to:
+  /// **'km away'**
+  String get kilometersAway;
 
   /// No description provided for @statusArrived.
   ///

@@ -73,6 +73,8 @@
 
   "close": "Tutup",
   "bus": "Bas",
+  "busA" : "Bas A",
+  "busB" : "Bas B",
   "scheduledTime": "Waktu Jadual",
   "nextStop": "Perhentian Seterusnya",
   "status": "Kedudukan",
@@ -83,6 +85,9 @@
 
   "transitRequired": "Perlu Transit",
   "transitDescription": "Turun di {stop} dan berjalan (~5 min) untuk meneruskan perjalanan anda.\n\nTambahan Tambang: BND 1.00",
+   "locating": "Sedang mencari...",
+  "metersAway": "m jauhnya",
+  "kilometersAway": "km jauhnya",
 
   "statusArrived": "✅ Telah sampai destinasi",
   "statusArrivingSoon": "🟢 Sedang menghampiri ({minutes} minit)",

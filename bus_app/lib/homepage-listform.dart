@@ -26,10 +26,22 @@ class _ListFormPageState extends State<ListFormPage>
   ];
 
   final List<Map<String, dynamic>> _allStops = [
-    {'name': 'The Mall Gadong', 'lat': 4.868942, 'lng': 114.903128}, // change to ur lat/lng here
-    {'name': 'Yayasan Complex', 'lat': 4.888581361818439, 'lng': 114.94048600605531},
+    {
+      'name': 'The Mall Gadong',
+      'lat': 4.868942,
+      'lng': 114.903128
+    }, // change to ur lat/lng here
+    {
+      'name': 'Yayasan Complex',
+      'lat': 4.888581361818439,
+      'lng': 114.94048600605531
+    },
     {'name': 'Kianggeh', 'lat': 4.8892108308087385, 'lng': 114.94433682090414},
-    {'name': 'Ong Sum Ping', 'lat': 4.90414222577477, 'lng': 114.93627988813594},
+    {
+      'name': 'Ong Sum Ping',
+      'lat': 4.90414222577477,
+      'lng': 114.93627988813594
+    },
     {'name': 'PB School', 'lat': 4.904922563115028, 'lng': 114.9332865430959},
     {'name': 'Ministry of Finance', 'lat': 4.868942, 'lng': 114.903128},
   ];
@@ -40,120 +52,121 @@ class _ListFormPageState extends State<ListFormPage>
   };
 
   late List<Map<String, dynamic>> _displayedStops;
-Position? _userPosition;
-StreamSubscription<Position>? _positionStream;
-Timer? _locationTimer;
+  Position? _userPosition;
+  StreamSubscription<Position>? _positionStream;
+  Timer? _locationTimer;
 
-String? selectedFrom;
-String? selectedTo;
-StreamSubscription<ServiceStatus>? _serviceStatusStream;
+  String? selectedFrom;
+  String? selectedTo;
+  StreamSubscription<ServiceStatus>? _serviceStatusStream;
 
-bool _hasLocationPermission = false;
-bool _locationPopupShown = false; // ✅ unified flag to prevent multiple popups
+  bool _hasLocationPermission = false;
+  bool _locationPopupShown = false; // ✅ unified flag to prevent multiple popups
 
-@override
-void initState() {
-  super.initState();
+  @override
+  void initState() {
+    super.initState();
 
-  _displayedStops = List<Map<String, dynamic>>.from(_allStops);
+    _displayedStops = List<Map<String, dynamic>>.from(_allStops);
 
-  _initLocation();
+    _initLocation();
 
-  // Stream for position updates
-  _positionStream = Geolocator.getPositionStream(
-    locationSettings: const LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 1,
-    ),
-  ).listen((position) {
-    if (mounted) setState(() => _userPosition = position);
-  });
-
-  // Stream for service status changes
-  _serviceStatusStream = Geolocator.getServiceStatusStream().listen(
-    (status) async {
-      if (!mounted) return;
-
-      // Location service disabled
-      if (status == ServiceStatus.disabled && !_locationPopupShown) {
-        _locationPopupShown = true;
-
-        // Open system location settings
-        await Geolocator.openLocationSettings();
-
-        // Small delay to prevent rapid re-trigger
-        await Future.delayed(const Duration(seconds: 2));
-
-        _locationPopupShown = false;
-      }
-    },
-  );
-
-  // Timer to periodically get position if permission is granted
-  _locationTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
-    if (!mounted || !_hasLocationPermission) return;
-
-    try {
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
+    // Stream for position updates
+    _positionStream = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 1,
+      ),
+    ).listen((position) {
       if (mounted) setState(() => _userPosition = position);
-    } catch (_) {
-      // ignore errors (likely no permission)
-    }
-  });
-}
+    });
+
+    // Stream for service status changes
+    _serviceStatusStream = Geolocator.getServiceStatusStream().listen(
+      (status) async {
+        if (!mounted) return;
+
+        // Location service disabled
+        if (status == ServiceStatus.disabled && !_locationPopupShown) {
+          _locationPopupShown = true;
+
+          // Open system location settings
+          await Geolocator.openLocationSettings();
+
+          // Small delay to prevent rapid re-trigger
+          await Future.delayed(const Duration(seconds: 2));
+
+          _locationPopupShown = false;
+        }
+      },
+    );
+
+    // Timer to periodically get position if permission is granted
+    _locationTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+      if (!mounted || !_hasLocationPermission) return;
+
+      try {
+        final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+        if (mounted) setState(() => _userPosition = position);
+      } catch (_) {
+        // ignore errors (likely no permission)
+      }
+    });
+  }
 
 // ✅ Unified method to initialize location permission & first position
-Future<void> _initLocation() async {
-  bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  Future<void> _initLocation() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
-  if (!serviceEnabled && !_locationPopupShown) {
-    _locationPopupShown = true;
-    await Geolocator.openLocationSettings();
-    await Future.delayed(const Duration(seconds: 2));
-    _locationPopupShown = false;
+    if (!serviceEnabled && !_locationPopupShown) {
+      _locationPopupShown = true;
+      await Geolocator.openLocationSettings();
+      await Future.delayed(const Duration(seconds: 2));
+      _locationPopupShown = false;
 
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return; // user didn't enable, stop here
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return; // user didn't enable, stop here
+    }
+
+    // Check permission
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) return;
+
+    _hasLocationPermission = true;
+
+    // Get initial position
+    final position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+    if (mounted) setState(() => _userPosition = position);
   }
 
-  // Check permission
-  LocationPermission permission = await Geolocator.checkPermission();
-  if (permission == LocationPermission.denied) {
-    permission = await Geolocator.requestPermission();
+  @override
+  void dispose() {
+    _positionStream?.cancel();
+    _serviceStatusStream?.cancel();
+    _locationTimer?.cancel();
+    super.dispose();
   }
-
-  if (permission == LocationPermission.denied ||
-      permission == LocationPermission.deniedForever) return;
-
-  _hasLocationPermission = true;
-
-  // Get initial position
-  final position = await Geolocator.getCurrentPosition(
-    desiredAccuracy: LocationAccuracy.high,
-  );
-  if (mounted) setState(() => _userPosition = position);
-}
-
-@override
-void dispose() {
-  _positionStream?.cancel();
-  _serviceStatusStream?.cancel();
-  _locationTimer?.cancel();
-  super.dispose();
-}
-
 
   @override
   bool get wantKeepAlive => true;
 
-  String _formatDistance(double distanceInMeters) {
-    if (distanceInMeters == double.infinity) return 'Locating...';
+  String _formatDistance(BuildContext context, double distanceInMeters) {
+    final loc = AppLocalizations.of(context)!;
+
+    if (distanceInMeters == double.infinity) return loc.locating;
     if (distanceInMeters < 1000) {
-      return '${distanceInMeters.toStringAsFixed(0)} m away';
+      return '${distanceInMeters.toStringAsFixed(0)} ${loc.metersAway}';
     } else {
-      return '${(distanceInMeters / 1000).toStringAsFixed(2)} km away';
+      return '${(distanceInMeters / 1000).toStringAsFixed(2)} ${loc.kilometersAway}';
     }
   }
 
@@ -247,7 +260,8 @@ void dispose() {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: selectedTo,  // Use `value` here instead of `initialValue`
+                    value:
+                        selectedTo, // Use `value` here instead of `initialValue`
                     isExpanded: true,
                     decoration: InputDecoration(
                       labelText: loc.destination, // Localized
@@ -259,7 +273,8 @@ void dispose() {
                     items: locations
                         .map((locName) => DropdownMenuItem<String>(
                               value: locName,
-                              child: Text(locName, overflow: TextOverflow.ellipsis),
+                              child: Text(locName,
+                                  overflow: TextOverflow.ellipsis),
                             ))
                         .toList(),
                     onChanged: (val) {
@@ -322,7 +337,8 @@ void dispose() {
                   ),
                   onPressed: () {
                     setState(() {
-                      _displayedStops = List<Map<String, dynamic>>.from(_allStops);
+                      _displayedStops =
+                          List<Map<String, dynamic>>.from(_allStops);
                       selectedFrom = null;
                       selectedTo = null;
                     });
@@ -349,7 +365,7 @@ void dispose() {
                 final distance = (lat != null && lng != null)
                     ? _calculateDistance(lat, lng)
                     : double.infinity;
-                final distanceText = _formatDistance(distance);
+                final distanceText = _formatDistance(context, distance);
 
                 final isNearby = distance <= 900;
 
@@ -357,39 +373,42 @@ void dispose() {
                   name: name,
                   distance: distanceText,
                   onView: isNearby
-    ? () {
-        // Determine which buses serve this stop
-        List<String> assignedBuses = [];
+                      ? () {
+                          // Determine which buses serve this stop
+                          List<String> assignedBuses = [];
 
-        // Group A stops → BUS001
-        const groupA = [
-          'The Mall Gadong',
-          'Ong Sum Ping',
-          'PB School',
-          'Kianggeh'
-        ];
+                          // Group A stops → BUS001
+                          const groupA = [
+                            'The Mall Gadong',
+                            'Ong Sum Ping',
+                            'PB School',
+                            'Kianggeh'
+                          ];
 
-        // Group B stops → BUS002
-        const groupB = [
-          'Kianggeh',
-          'Yayasan Complex',
-          'Ministry of Finance'
-        ];
+                          // Group B stops → BUS002
+                          const groupB = [
+                            'Kianggeh',
+                            'Yayasan Complex',
+                            'Ministry of Finance'
+                          ];
 
-        if (groupA.contains(name)) assignedBuses.add('BUS001');
-        if (groupB.contains(name)) assignedBuses.add('BUS002');
+                          if (groupA.contains(name))
+                            assignedBuses.add('BUS001');
+                          if (groupB.contains(name))
+                            assignedBuses.add('BUS002');
 
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AvailableBusesPage(
-              busStopName: name,
-              assignedBuses: assignedBuses, // 👈 new parameter
-            ),
-          ),
-        );
-      }
-    : null,
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AvailableBusesPage(
+                                busStopName: name,
+                                assignedBuses:
+                                    assignedBuses, // 👈 new parameter
+                              ),
+                            ),
+                          );
+                        }
+                      : null,
                 );
               },
             ),

@@ -192,7 +192,7 @@ class MapPageState extends State<MapFormPage> {
         await _drawTransitRoute(from, to);
       }
 
-      _startEtaTimer(from.busName, to.lat, to.lng, from.name);
+      _startEtaTimer(from.busName, to.lat, to.lng, to.name);
     } catch (e) {
       debugPrint('Route generation error: $e');
     }
@@ -457,136 +457,198 @@ class MapPageState extends State<MapFormPage> {
 
 // ---------------- ETA INFO POPUP WHEN TAP ----------------
   void _showEtaDetailsPopup(BuildContext context) {
-    if (_etaFromStop == null || _etaStopName == null) return;
+  if (_etaFromStop == null || _etaStopName == null) return;
 
-    final busInfo = _busInfo.values.firstWhere(
-      (b) => b.name == _etaFromStop,
-      orElse: () => BusInfo(
-        docId: "",
-        busId: "",
-        name: _etaFromStop ?? "",
-        assignedTo: AppLocalizations.of(context)!.unknown,
-        features: [],
-      ),
-    );
+  final busInfo = _busInfo.values.firstWhere(
+    (b) => b.name == _etaFromStop,
+    orElse: () => BusInfo(
+      docId: "",
+      busId: "",
+      name: _etaFromStop ?? "",
+      assignedTo: AppLocalizations.of(context)!.unknown,
+      features: [],
+    ),
+  );
 
-    final stopInfo = _firebaseStops.firstWhere(
-      (s) => s.name == _etaStopName,
-      orElse: () => StopData(
-        name: _etaStopName ?? "",
-        lat: 0,
-        lng: 0,
-        time: AppLocalizations.of(context)!.unknown,
-        busName: busInfo.name,
-      ),
-    );
+  // 🔹 Get correct next stop from Firestore (_firebaseStops)
+  final nextStop = _firebaseStops.firstWhere(
+  (s) => s.name == _etaStopName && s.busName == _etaFromStop,
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        child: Container(
-          color: Colors.white.withOpacity(0.95),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                busInfo.name,
-                style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                      color: Colors.indigo,
-                    ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                "${AppLocalizations.of(context)!.driver}: ${busInfo.assignedTo}",
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                AppLocalizations.of(context)!.busFeatures,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              ...busInfo.features.map((f) => Text("• $f")),
-              const Divider(height: 20, color: Colors.black26),
-              Text(
-                "${AppLocalizations.of(context)!.nextStop}: ${stopInfo.name}",
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                "${AppLocalizations.of(context)!.scheduledTime}: ${stopInfo.time}",
-                style: const TextStyle(fontSize: 15),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                "${AppLocalizations.of(context)!.status}: $_etaStatus",
-                style: const TextStyle(fontSize: 15, color: Colors.deepPurple),
-              ),
-              const SizedBox(height: 15),
-              Align(
-                alignment: Alignment.center,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style:
-                      ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
-                  child: Text(
-                    AppLocalizations.of(context)!.close,
-                    style: const TextStyle(color: Colors.white),
+    orElse: () => StopData(
+      name: _etaStopName ?? "",
+      lat: 0,
+      lng: 0,
+      time: "N/A",
+      busName: _etaFromStop ?? "",
+    ),
+  );
+
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (_) => ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      child: Container(
+        color: Colors.white.withOpacity(0.95),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 🔸 Bus title
+            Text(
+              busInfo.name,
+              style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: Colors.indigo,
                   ),
+            ),
+            const SizedBox(height: 6),
+
+            // 🔸 Driver
+            Text(
+              "${AppLocalizations.of(context)!.driver}: ${busInfo.assignedTo}",
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+
+            // 🔸 Bus features
+            Text(
+              AppLocalizations.of(context)!.busFeatures,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            ...busInfo.features.map((f) => Text("• $f")),
+            const Divider(height: 20, color: Colors.black26),
+
+            // 🔸 Firestore-based next stop & schedule
+            Text(
+              "Next Stop: ${nextStop.name}",
+              style:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              "Scheduled Time: ${nextStop.time.isNotEmpty ? nextStop.time : 'N/A'}",
+              style: const TextStyle(fontSize: 15),
+            ),
+            const SizedBox(height: 10),
+
+            // 🔸 ETA status (live)
+            Text(
+              "Status: $_etaStatus",
+              style: const TextStyle(fontSize: 15, color: Colors.deepPurple),
+            ),
+
+            const SizedBox(height: 15),
+            Align(
+              alignment: Alignment.center,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
+                child: Text(
+                  AppLocalizations.of(context)!.close,
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+    ),
+  );
+}
+
+
+void _startEtaTimer(
+    String busName, double stopLat, double stopLng, String userDestination) {
+  _etaTimer?.cancel();
+
+  _etaTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+    final busId = busName.contains("A") ? "BUS001" : "BUS002";
+    final busPos = _busPositions[busId];
+    if (busPos == null) return;
+
+    // 🔹 Get Firestore schedule for this bus
+    final busDoc = await _firestore
+        .collection('buses')
+        .where('bus_id', isEqualTo: busId)
+        .get();
+    if (busDoc.docs.isEmpty) return;
+
+    final busData = busDoc.docs.first.data();
+    final stops = List<Map<String, dynamic>>.from(busData['stops']);
+    if (stops.isEmpty) return;
+
+    final distanceCalc = const Distance();
+
+    // 🔹 Find which stop the bus is closest to right now
+    int nearestIndex = 0;
+    double nearestDist = double.infinity;
+    for (int i = 0; i < stops.length; i++) {
+      final d = distanceCalc.as(
+        LengthUnit.Meter,
+        busPos,
+        LatLng(stops[i]['lat'], stops[i]['lng']),
+      );
+      if (d < nearestDist) {
+        nearestDist = d;
+        nearestIndex = i;
+      }
+    }
+
+    final currentStop = stops[nearestIndex];
+    final nextStopIndex =
+        (nearestIndex + 1 < stops.length) ? nearestIndex + 1 : 0;
+    final nextStop = stops[nextStopIndex];
+
+    // 🔹 Calculate distance and ETA
+    final distToCurrent = distanceCalc.as(
+      LengthUnit.Meter,
+      busPos,
+      LatLng(currentStop['lat'], currentStop['lng']),
     );
-  }
+    final distToNext = distanceCalc.as(
+      LengthUnit.Meter,
+      busPos,
+      LatLng(nextStop['lat'], nextStop['lng']),
+    );
 
-// ---------------- ETA TIMER  ----------------
-  void _startEtaTimer(
-      String busName, double stopLat, double stopLng, String fromStop) {
-    _etaTimer?.cancel();
+    const avgSpeed = 7.0; // m/s ≈ 25 km/h
+    double etaNextMin = (distToNext / (avgSpeed * 60)).clamp(0.1, 60.0);
 
-    _etaTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      final loc = AppLocalizations.of(context)!;
-      final busId = busName.contains("A") ? "BUS001" : "BUS002";
-      final busPos = _busPositions[busId];
-      if (busPos == null) return;
+    // 🕒 Delay logic — simulate staying 1 min at the stop
+    // If bus is very close (<40m), hold eta at 0.1min for ~1 min before updating
+    bool isAtStop = distToCurrent < 40;
+    String status;
+    String displayStop;
 
-      // Calculate distance (in meters) between bus and target stop
-      final distance = const Distance()
-          .as(LengthUnit.Meter, busPos, LatLng(stopLat, stopLng));
+    if (isAtStop) {
+      // ✅ Still at stop — hold ETA near 0.1
+      etaNextMin = 0.1;
+      status =
+          "🟢 Arrived at ${currentStop['name']} (~${etaNextMin.toStringAsFixed(1)} min)";
+      displayStop = nextStop['name'];
+    } else if (etaNextMin <= 1.5) {
+      status =
+          "🟡 Arriving soon at ${nextStop['name']} (~${etaNextMin.toStringAsFixed(1)} min)";
+      displayStop = nextStop['name'];
+    } else {
+      status =
+          "🕓 En route to ${nextStop['name']} (~${etaNextMin.toStringAsFixed(1)} min)";
+      displayStop = nextStop['name'];
+    }
 
-      // Assume realistic average speed ~25 km/h (≈ 6.94 m/s)
-      final avgSpeed = 6.94;
-      final etaMinutes = distance / (avgSpeed * 60);
+    // 🔹 Update the live ETA card
+    if (mounted) {
+      setState(() {
+        _etaFromStop = busName;
+        _etaStopName = displayStop;
+        _etaStatus = status;
+      });
+    }
+  });
+}
 
-      String status;
-      if (distance < 25) {
-        // Bus has arrived
-        status = loc.statusArrived;
-      } else if (distance < 120) {
-        // Bus arriving soon (within 120m)
-        status = loc.statusArrivingSoon(etaMinutes.toStringAsFixed(1));
-      } else {
-        // Estimated time of arrival for farther distances
-        status = loc.statusETA(etaMinutes.toStringAsFixed(1));
-      }
-      if (mounted) {
-        setState(() {
-          _etaStopName = fromStop;
-          _etaFromStop = busName;
-          _etaStatus = status;
-        });
-      }
-    });
-  }
 
   // ---------------- TRANSIT POPUP ----------------
   void _showTransitPopup(
@@ -845,73 +907,76 @@ class MapPageState extends State<MapFormPage> {
 // ---------------- ETA CARD ----------------
 class _EtaCard extends StatelessWidget {
   final String stop, from, status;
-  final VoidCallback onTap; // 👈 new line added
+  final VoidCallback onTap;
 
   const _EtaCard({
     required this.stop,
     required this.from,
     required this.status,
-    required this.onTap, // 👈 new line added
+    required this.onTap,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final settings = Provider.of<SettingsProvider>(context);
-    final loc = AppLocalizations.of(context)!;
-
-    return GestureDetector(
-      onTap: onTap, // use callback
-
-      child: Center(
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              margin: const EdgeInsets.symmetric(horizontal: 18),
-              decoration: BoxDecoration(
-                color: Colors.indigo.withOpacity(0.8),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        stop, // you could also localize: loc.stopName(stop)
-                        style: TextStyle(
-                          fontSize: settings.fontSize * 1.1,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Center(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.symmetric(horizontal: 18),
+                decoration: BoxDecoration(
+                  color: Colors.indigo.withOpacity(0.85),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Next Stop: $stop",
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            status,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.white70,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: settings.fontSize * 0.2),
-                      Text(
-                        status, // make sure status is localized before passing
-                        style: TextStyle(
-                          fontSize: settings.fontSize,
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Icon(
-                    Icons.directions_bus,
-                    color: Colors.white,
-                    size: settings.iconSize,
-                  ),
-                ],
+                    ),
+                    const SizedBox(width: 10),
+                    const Icon(Icons.directions_bus,
+                        color: Colors.white, size: 30),
+                  ],
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }
+
 
 // ---------------- DATA MODELS ----------------
 class BusInfo {

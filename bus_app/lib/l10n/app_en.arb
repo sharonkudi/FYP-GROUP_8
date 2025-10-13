@@ -70,6 +70,8 @@
   "duration_10_20": "Estimated 10–20 minutes for each stop",
   "close": "Close",
   "bus": "Bus",
+  "busA" : "Bus A",
+  "busB" : "Bus B",
   "scheduledTime": "Scheduled Time",
   "nextStop": "Next Stop",
   "status": "Status",
@@ -79,6 +81,9 @@
   "routeYayasanKianggeh": "Yayasan Complex → Kianggeh",
   "transitRequired": "Transit Required",
   "transitDescription": "Drop off at {stop} and walk (~5 min) to continue your journey.\n\nExtra Fare: BND 1.00",
+  "locating": "Locating...",
+  "metersAway": "m away",
+  "kilometersAway": "km away",
   "statusArrived": "✅ Arrived at destination",
   "statusArrivingSoon": "🟢 Arriving Soon ({minutes} min)",
   "@statusArrivingSoon": {

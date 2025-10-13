@@ -219,6 +219,12 @@ class AppLocalizationsMs extends AppLocalizations {
   String get bus => 'Bas';
 
   @override
+  String get busA => 'Bas A';
+
+  @override
+  String get busB => 'Bas B';
+
+  @override
   String get scheduledTime => 'Waktu Jadual';
 
   @override
@@ -246,6 +252,15 @@ class AppLocalizationsMs extends AppLocalizations {
   String transitDescription(Object stop) {
     return 'Turun di $stop dan berjalan (~5 min) untuk meneruskan perjalanan anda.\n\nTambahan Tambang: BND 1.00';
   }
+
+  @override
+  String get locating => 'Sedang mencari...';
+
+  @override
+  String get metersAway => 'm jauhnya';
+
+  @override
+  String get kilometersAway => 'km jauhnya';
 
   @override
   String get statusArrived => '✅ Telah sampai destinasi';
